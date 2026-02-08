@@ -437,9 +437,10 @@ function separateWordSetsByNumber(words) {
         if (b === 'etc') return -1;
         return parseInt(a) - parseInt(b);
     }).forEach(num => {
+        const setName = num === 'etc' ? '기타' : `${num}번 단어`;
         sortedSets.push({
             number: num,
-            name: num === 'etc' ? '기타' : `${num}번`,
+            name: setName,
             words: sets[num]
         });
     });
@@ -454,42 +455,50 @@ function renderWordSets(wordSets) {
     container.innerHTML = wordSets.map((set, setIndex) => `
         <div class="word-set-card" data-set-index="${setIndex}">
             <div class="word-set-header">
-                <h4>${set.name} (${set.words.length}개 단어)</h4>
+                <h4>📚 ${set.name}</h4>
+                <span class="word-count-badge">${set.words.length}개 단어</span>
             </div>
             <div class="word-set-content">
                 <div class="word-input-section">
-                    <label>세트 이름:</label>
+                    <label>세트 이름 수정:</label>
                     <input type="text" 
                            class="set-name-input input-field" 
                            value="${set.name}" 
                            data-set-index="${setIndex}"
-                           placeholder="예: 22번">
+                           placeholder="예: 22번 단어">
                 </div>
                 <div class="words-list-mini">
-                    ${set.words.map((w, i) => `
-                        <div class="word-item-mini">
-                            <span class="word-mini">${w.word}</span>
-                            <span class="meaning-mini">${w.meaning.split('\n')[0]}</span>
-                        </div>
-                    `).join('')}
+                    ${set.words.slice(0, 5).map((w, i) => {
+                        const firstLine = w.meaning ? w.meaning.split('\n')[0] : '';
+                        return `
+                            <div class="word-item-mini">
+                                <span class="word-mini">${w.word || ''}</span>
+                                <span class="meaning-mini">${firstLine}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                    ${set.words.length > 5 ? `<div class="more-words">...외 ${set.words.length - 5}개 더</div>` : ''}
                 </div>
                 <div class="button-group">
                     <button class="btn btn-secondary btn-edit-set" data-set-index="${setIndex}">
-                        ✏️ 수정
+                        ✏️ 전체 보기/수정
                     </button>
                     <button class="btn btn-primary btn-save-set" data-set-index="${setIndex}">
-                        💾 저장
+                        💾 이 세트 저장
                     </button>
                 </div>
             </div>
         </div>
     `).join('');
     
+    // 임시로 wordSets를 전역에 저장 (수정/저장 시 사용)
+    window.currentWordSets = wordSets;
+    
     // 저장 버튼 이벤트
     document.querySelectorAll('.btn-save-set').forEach(btn => {
         btn.addEventListener('click', function() {
             const setIndex = parseInt(this.dataset.setIndex);
-            saveWordSet(wordSets[setIndex], setIndex);
+            saveWordSet(window.currentWordSets[setIndex], setIndex);
         });
     });
     
@@ -497,7 +506,7 @@ function renderWordSets(wordSets) {
     document.querySelectorAll('.btn-edit-set').forEach(btn => {
         btn.addEventListener('click', function() {
             const setIndex = parseInt(this.dataset.setIndex);
-            showEditMode(wordSets[setIndex], setIndex);
+            showEditMode(window.currentWordSets[setIndex], setIndex);
         });
     });
 }
@@ -913,6 +922,23 @@ function updateStudyScreen() {
     // 카드 내용
     document.getElementById('cardFront').textContent = currentWord.word;
     document.getElementById('cardBack').textContent = currentWord.meaning;
+    
+    // 카드 앞면에 암기 체크 표시
+    const cardFront = document.querySelector('.card-front .card-content');
+    const existingCheck = cardFront.querySelector('.check-mark');
+    
+    if (currentWord.known) {
+        if (!existingCheck) {
+            const checkMark = document.createElement('div');
+            checkMark.className = 'check-mark';
+            checkMark.textContent = '✓';
+            cardFront.insertBefore(checkMark, cardFront.firstChild);
+        }
+    } else {
+        if (existingCheck) {
+            existingCheck.remove();
+        }
+    }
     
     // 힌트 영역 숨김
     document.getElementById('cardHint').style.display = 'none';

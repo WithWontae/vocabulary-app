@@ -484,12 +484,42 @@ h3 {
     padding: 40px;
     background: white;
     white-space: pre-line;
+    position: relative;
 }
 
 .card-back .card-content {
     background: #7cb342;
     color: white;
     font-size: 32px;
+}
+
+.check-mark {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: #7cb342;
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: bold;
+    animation: checkPop 0.3s ease;
+}
+
+@keyframes checkPop {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .card-hint {
@@ -569,10 +599,39 @@ h3 {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+.word-set-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--bg-color);
+}
+
 .word-set-header h4 {
-    margin: 0 0 15px 0;
+    margin: 0;
     color: var(--primary-color);
     font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.word-count-badge {
+    background: var(--primary-color);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.more-words {
+    text-align: center;
+    padding: 8px;
+    color: var(--text-light);
+    font-size: 13px;
+    font-style: italic;
 }
 
 .word-set-content {
