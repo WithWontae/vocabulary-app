@@ -568,14 +568,10 @@ function updateStudyScreen() {
     
     // 카드 내용
     document.getElementById('cardFront').textContent = currentWord.word;
-    document.getElementById('cardBack').textContent = '';  // 흰색 영역 비움
+    document.getElementById('cardBack').textContent = currentWord.meaning;
     
-    // 힌트 영역 - 뜻 전체를 초록색 영역에 표시
-    const hintElement = document.querySelector('.hint-text');
-    const cardHint = document.getElementById('cardHint');
-    
-    hintElement.textContent = currentWord.meaning;
-    cardHint.style.display = 'flex';
+    // 힌트 영역 숨김
+    document.getElementById('cardHint').style.display = 'none';
     
     // 푸터 정보
     document.getElementById('currentSetName').textContent = set.name;
