@@ -315,8 +315,6 @@ function startStudySession() {
     AppState.shuffled = false;
     AppState.hideKnown = false;
     
-    document.getElementById('hideKnownCheck').checked = false;
-    
     showScreen('studyScreen');
     updateStudyScreen();
 }
@@ -345,16 +343,19 @@ function updateStudyScreen() {
     const currentWord = words[AppState.currentCardIndex];
     
     // 헤더 업데이트
-    document.getElementById('currentSetName').textContent = set.name;
     document.getElementById('progressText').textContent = `${AppState.currentCardIndex + 1}/${words.length}`;
     
-    // 진행률 바
-    const progress = ((AppState.currentCardIndex + 1) / words.length) * 100;
-    document.getElementById('progressFill').style.width = progress + '%';
+    // 암기 카운터 업데이트
+    const knownCount = set.words.filter(w => w.known).length;
+    document.getElementById('knownCount').textContent = knownCount;
+    document.getElementById('totalCount').textContent = set.words.length;
     
     // 카드 내용
     document.getElementById('cardFront').textContent = currentWord.word;
     document.getElementById('cardBack').textContent = currentWord.meaning;
+    
+    // 푸터 정보
+    document.getElementById('currentSetName').textContent = set.name;
     
     // 카드 뒤집기 초기화
     const card = document.getElementById('flashCard');
@@ -370,10 +371,31 @@ function flipCard() {
 }
 
 document.getElementById('flashCard').addEventListener('click', flipCard);
-document.getElementById('flipBtn').addEventListener('click', flipCard);
 
-// 이전 카드
-document.getElementById('prevBtn').addEventListener('click', () => {
+// 헤더 이전/다음 버튼
+document.getElementById('headerPrevBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('prevBtn')?.click() || prevCard();
+});
+
+document.getElementById('headerNextBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('nextBtn')?.click() || nextCard();
+});
+
+// 아는카드 버튼
+document.getElementById('knowCardBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const currentWord = getCurrentWord();
+    if (currentWord) {
+        currentWord.known = true;
+        saveData();
+    }
+    goToNextCard();
+});
+
+// 이전 카드 함수
+function prevCard() {
     let words = AppState.currentSet.words;
     if (AppState.hideKnown) {
         words = words.filter(w => !w.known);
@@ -384,10 +406,10 @@ document.getElementById('prevBtn').addEventListener('click', () => {
         AppState.currentCardIndex = words.length - 1;
     }
     updateStudyScreen();
-});
+}
 
-// 다음 카드
-document.getElementById('nextBtn').addEventListener('click', () => {
+// 다음 카드 함수
+function nextCard() {
     let words = AppState.currentSet.words;
     if (AppState.hideKnown) {
         words = words.filter(w => !w.known);
@@ -398,27 +420,7 @@ document.getElementById('nextBtn').addEventListener('click', () => {
         AppState.currentCardIndex = 0;
     }
     updateStudyScreen();
-});
-
-// 모르겠어요
-document.getElementById('unknownBtn').addEventListener('click', () => {
-    const currentWord = getCurrentWord();
-    if (currentWord) {
-        currentWord.known = false;
-        saveData();
-    }
-    goToNextCard();
-});
-
-// 암기했어요
-document.getElementById('knownBtn').addEventListener('click', () => {
-    const currentWord = getCurrentWord();
-    if (currentWord) {
-        currentWord.known = true;
-        saveData();
-    }
-    goToNextCard();
-});
+}
 
 // 현재 단어 가져오기
 function getCurrentWord() {
@@ -443,37 +445,13 @@ function goToNextCard() {
     updateStudyScreen();
 }
 
-// 섞기
-document.getElementById('shuffleBtn').addEventListener('click', () => {
-    const set = AppState.currentSet;
-    
-    // Fisher-Yates 셔플
-    for (let i = set.words.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [set.words[i], set.words[j]] = [set.words[j], set.words[i]];
-    }
-    
-    AppState.shuffled = !AppState.shuffled;
-    AppState.currentCardIndex = 0;
-    updateStudyScreen();
-    
-    alert('단어 순서를 섞었습니다! 🔀');
-});
-
-// 암기한 단어 숨기기
-document.getElementById('hideKnownCheck').addEventListener('change', (e) => {
-    AppState.hideKnown = e.target.checked;
-    AppState.currentCardIndex = 0;
-    updateStudyScreen();
-});
-
 // 키보드 단축키
 document.addEventListener('keydown', (e) => {
     if (document.getElementById('studyScreen').classList.contains('active')) {
         if (e.key === 'ArrowLeft') {
-            document.getElementById('prevBtn').click();
+            prevCard();
         } else if (e.key === 'ArrowRight') {
-            document.getElementById('nextBtn').click();
+            nextCard();
         } else if (e.key === ' ') {
             e.preventDefault();
             flipCard();
@@ -501,10 +479,10 @@ function handleSwipe() {
     if (Math.abs(diff) > swipeThreshold) {
         if (diff > 0) {
             // 왼쪽 스와이프 - 다음
-            document.getElementById('nextBtn').click();
+            nextCard();
         } else {
             // 오른쪽 스와이프 - 이전
-            document.getElementById('prevBtn').click();
+            prevCard();
         }
     }
 }

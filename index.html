@@ -75,46 +75,52 @@
     <!-- 학습 화면 -->
     <div id="studyScreen" class="screen">
         <div class="study-header">
-            <button class="btn-back" id="studyBackBtn">← 뒤로</button>
-            <div class="study-info">
-                <span id="currentSetName"></span>
+            <button class="btn-back" id="studyBackBtn">✕</button>
+            <div class="study-progress">
+                <button class="btn-prev-card" id="headerPrevBtn">‹</button>
                 <span id="progressText">0/0</span>
+                <button class="btn-next-card" id="headerNextBtn">›</button>
             </div>
-            <button class="btn-icon" id="shuffleBtn">🔀</button>
+            <button class="btn-icon" id="menuBtn">☰</button>
         </div>
 
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
+        <div class="known-counter">
+            <span class="known-icon">✓</span>
+            <span id="knownCount">0</span>
+            <span class="divider">|</span>
+            <span id="totalCount">0</span>
         </div>
 
         <div class="study-container">
             <div class="card-wrapper">
                 <div class="card" id="flashCard">
                     <div class="card-front">
+                        <div class="card-header">
+                            <button class="card-icon-btn" id="soundBtn">🔊</button>
+                            <button class="card-icon-btn" id="starBtn">☆</button>
+                            <button class="btn-know-card" id="knowCardBtn">아는카드</button>
+                        </div>
                         <div class="card-content" id="cardFront"></div>
                     </div>
                     <div class="card-back">
+                        <div class="card-header">
+                            <button class="card-icon-btn" id="soundBtn2">🔊</button>
+                            <button class="card-icon-btn" id="starBtn2">☆</button>
+                        </div>
                         <div class="card-content" id="cardBack"></div>
+                        <div class="card-hint" id="cardHint">
+                            <div class="hint-icon">⌄⌄⌄</div>
+                            <div class="hint-text">의미를 가리고 기억해 보세요.<br>생각이 안나면 커버를 조금 내려<br>확인하고 다음 카드로 넘기세요!</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card-controls">
-                <button class="btn-control" id="prevBtn">←</button>
-                <button class="btn-control btn-flip" id="flipBtn">뒤집기</button>
-                <button class="btn-control" id="nextBtn">→</button>
-            </div>
-
-            <div class="mastery-controls">
-                <button class="btn-mastery btn-unknown" id="unknownBtn">모르겠어요</button>
-                <button class="btn-mastery btn-known" id="knownBtn">암기했어요 ✓</button>
-            </div>
-
-            <div class="study-options">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="hideKnownCheck">
-                    암기한 단어 숨기기
-                </label>
+            <div class="study-footer">
+                <div class="footer-info">
+                    <span id="currentSetName"></span>
+                </div>
+                <div class="footer-hint">세계 원서 읽기가 목표라면 (#클래스카드 앱 강추!)</div>
             </div>
         </div>
     </div>
