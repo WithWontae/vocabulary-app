@@ -132,17 +132,29 @@ async function processOCR(file) {
     const resultDiv = document.getElementById('ocrResult');
     
     progressDiv.style.display = 'block';
+    progressDiv.innerHTML = `
+        <div class="spinner"></div>
+        <p>단어를 추출하는 중...</p>
+        <p style="font-size: 12px; color: #999;">파일: ${file.name} (${(file.size / 1024).toFixed(1)}KB)</p>
+    `;
     resultDiv.style.display = 'none';
     
     try {
+        console.log('원본 파일:', file.name, file.type, file.size);
+        
         // HEIC 파일을 JPEG로 변환 (브라우저 호환성)
         let processedFile = file;
         
         // HEIC 파일인 경우 Canvas로 변환
         if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic')) {
+            console.log('HEIC 파일 감지, 변환 시작');
+            progressDiv.innerHTML += '<p style="font-size: 12px;">HEIC 파일 변환 중...</p>';
+            
             try {
                 // Canvas를 이용해 이미지 리사이즈 및 JPEG 변환
                 const img = await createImageBitmap(file);
+                console.log('이미지 로드 완료:', img.width, 'x', img.height);
+                
                 const canvas = document.createElement('canvas');
                 
                 // 최대 크기 제한 (API 전송 크기 제한)
@@ -172,25 +184,42 @@ async function processOCR(file) {
                 });
                 
                 processedFile = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+                console.log('HEIC 변환 완료:', processedFile.size);
             } catch (conversionError) {
                 console.error('HEIC 변환 오류:', conversionError);
-                alert('HEIC 파일 변환에 실패했습니다. 다른 형식의 사진을 사용해주세요.');
-                progressDiv.style.display = 'none';
-                return;
+                throw new Error('HEIC_CONVERSION_FAILED: ' + conversionError.message);
             }
+        } else {
+            console.log('일반 이미지 파일:', file.type);
         }
+        
+        // 파일 크기 체크 (5MB 제한)
+        if (processedFile.size > 5 * 1024 * 1024) {
+            throw new Error('FILE_TOO_LARGE: 파일이 너무 큽니다 (최대 5MB)');
+        }
+        
+        progressDiv.innerHTML = `
+            <div class="spinner"></div>
+            <p>AI가 단어를 분석하는 중...</p>
+            <p style="font-size: 12px; color: #999;">처리 중인 파일: ${processedFile.name}</p>
+        `;
         
         // 파일을 Base64로 변환
         const base64Data = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => {
                 const base64 = reader.result.split(',')[1];
+                console.log('Base64 변환 완료, 길이:', base64.length);
                 resolve(base64);
             };
-            reader.onerror = reject;
+            reader.onerror = () => {
+                reject(new Error('FILE_READ_FAILED'));
+            };
             reader.readAsDataURL(processedFile);
         });
 
+        console.log('API 호출 시작');
+        
         // Claude API 호출
         const response = await fetch('/api/ocr', {
             method: 'POST',
@@ -205,30 +234,72 @@ async function processOCR(file) {
             })
         });
 
+        console.log('API 응답:', response.status, response.statusText);
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'OCR 처리 실패');
+            const errorData = await response.json().catch(() => ({}));
+            console.error('API 에러 응답:', errorData);
+            throw new Error(`API_ERROR_${response.status}: ${errorData.error || response.statusText}`);
         }
 
         const result = await response.json();
+        console.log('추출된 단어 개수:', result.words?.length || 0);
+        
         const words = result.words || [];
+        
+        // 번호에서 세트 이름 자동 추출
+        let suggestedSetName = '';
+        if (words.length > 0) {
+            const numbers = words.map(w => w.number).filter(n => n);
+            if (numbers.length > 0) {
+                // 첫 번째와 마지막 번호로 범위 생성
+                const firstNum = numbers[0];
+                const lastNum = numbers[numbers.length - 1];
+                if (firstNum === lastNum) {
+                    suggestedSetName = `${firstNum}번`;
+                } else {
+                    suggestedSetName = `${firstNum}-${lastNum}번`;
+                }
+            }
+        }
         
         progressDiv.style.display = 'none';
         resultDiv.style.display = 'block';
         
+        // 세트 이름 자동 입력
+        if (suggestedSetName) {
+            document.getElementById('setNameInput').value = suggestedSetName;
+        }
+        
         // 추출된 단어 표시
-        renderWordInputs(words.length > 0 ? words : [{ word: '', meaning: '' }]);
+        renderWordInputs(words.length > 0 ? words : [{ number: '', word: '', meaning: '' }]);
+        
+        if (words.length === 0) {
+            alert('단어를 찾지 못했습니다.\n수동으로 입력해주세요.');
+        }
         
     } catch (error) {
-        console.error('OCR 오류:', error);
+        console.error('OCR 전체 오류:', error);
         
-        // 에러 메시지 개선
-        let errorMessage = '텍스트 추출에 실패했습니다.';
-        if (error.message.includes('API')) {
-            errorMessage += '\nAPI 설정을 확인해주세요.';
-        } else if (error.message.includes('network')) {
-            errorMessage += '\n네트워크 연결을 확인해주세요.';
+        // 에러 메시지 생성
+        let errorMessage = '텍스트 추출에 실패했습니다.\n\n';
+        
+        if (error.message.includes('HEIC_CONVERSION')) {
+            errorMessage += '원인: HEIC 파일 변환 실패\n해결: 사진 앱에서 JPEG로 변환 후 업로드';
+        } else if (error.message.includes('FILE_TOO_LARGE')) {
+            errorMessage += '원인: 파일이 너무 큼 (5MB 초과)\n해결: 더 작은 사진 사용';
+        } else if (error.message.includes('FILE_READ')) {
+            errorMessage += '원인: 파일 읽기 실패\n해결: 다른 사진 선택';
+        } else if (error.message.includes('API_ERROR_500')) {
+            errorMessage += '원인: 서버 오류\n해결: ANTHROPIC_API_KEY 확인 필요';
+        } else if (error.message.includes('API_ERROR')) {
+            errorMessage += '원인: API 호출 실패\n에러: ' + error.message;
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            errorMessage += '원인: 네트워크 연결 오류\n해결: 인터넷 연결 확인';
+        } else {
+            errorMessage += '원인: ' + error.message;
         }
+        
         errorMessage += '\n\n수동으로 단어를 입력할 수 있습니다.';
         
         alert(errorMessage);
@@ -244,13 +315,53 @@ async function processOCR(file) {
 function renderWordInputs(words) {
     const container = document.getElementById('wordsList');
     
-    container.innerHTML = words.map((word, index) => `
-        <div class="word-item" data-index="${index}">
-            <input type="text" placeholder="단어" value="${word.word}" class="word-input">
-            <input type="text" placeholder="뜻" value="${word.meaning}" class="meaning-input">
-            <button class="remove-word-btn" onclick="removeWordInput(${index})">×</button>
-        </div>
-    `).join('');
+    // 번호별로 그룹핑
+    const groupedWords = {};
+    words.forEach((word, index) => {
+        const num = word.number || 'etc';
+        if (!groupedWords[num]) {
+            groupedWords[num] = [];
+        }
+        groupedWords[num].push({ ...word, originalIndex: index });
+    });
+    
+    let html = '';
+    Object.keys(groupedWords).sort().forEach(num => {
+        if (num !== 'etc') {
+            html += `<div class="word-group-header">${num}번</div>`;
+        }
+        
+        groupedWords[num].forEach(word => {
+            html += `
+                <div class="word-item" data-index="${word.originalIndex}">
+                    <input type="text" 
+                           placeholder="단어" 
+                           value="${word.word || ''}" 
+                           class="word-input">
+                    <textarea placeholder="뜻" 
+                              class="meaning-input"
+                              rows="1">${word.meaning || ''}</textarea>
+                    <button class="remove-word-btn" onclick="removeWordInput(${word.originalIndex})">×</button>
+                </div>
+            `;
+        });
+    });
+    
+    container.innerHTML = html;
+    
+    // textarea 높이 자동 조절
+    document.querySelectorAll('.meaning-input').forEach(textarea => {
+        autoResizeTextarea(textarea);
+        textarea.addEventListener('input', function() {
+            autoResizeTextarea(this);
+        });
+    });
+}
+
+// textarea 자동 높이 조절
+function autoResizeTextarea(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = (textarea.scrollHeight) + 'px';
 }
 
 // 단어 추가
@@ -263,10 +374,16 @@ document.getElementById('addMoreWordBtn').addEventListener('click', () => {
     div.dataset.index = index;
     div.innerHTML = `
         <input type="text" placeholder="단어" class="word-input">
-        <input type="text" placeholder="뜻" class="meaning-input">
+        <textarea placeholder="뜻" class="meaning-input" rows="1"></textarea>
         <button class="remove-word-btn" onclick="removeWordInput(${index})">×</button>
     `;
     container.appendChild(div);
+    
+    // 새로 추가된 textarea에도 자동 높이 조절 적용
+    const textarea = div.querySelector('.meaning-input');
+    textarea.addEventListener('input', function() {
+        autoResizeTextarea(this);
+    });
 });
 
 // 단어 입력 제거
@@ -368,7 +485,55 @@ function startStudySession() {
     
     showScreen('studyScreen');
     updateStudyScreen();
+    renderSideMenu();
 }
+
+// 사이드 메뉴 렌더링
+function renderSideMenu() {
+    const container = document.getElementById('sideMenuContent');
+    
+    if (AppState.wordSets.length === 0) {
+        container.innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">세트가 없습니다</p>';
+        return;
+    }
+    
+    container.innerHTML = AppState.wordSets.map((set, index) => {
+        const knownCount = set.words.filter(w => w.known).length;
+        const totalCount = set.words.length;
+        const isActive = AppState.currentSet && AppState.currentSet.name === set.name;
+        
+        return `
+            <div class="side-menu-item ${isActive ? 'active' : ''}" data-index="${index}">
+                <div class="side-menu-item-title">${set.name}</div>
+                <div class="side-menu-item-count">${knownCount}/${totalCount} 암기</div>
+            </div>
+        `;
+    }).join('');
+    
+    // 클릭 이벤트
+    document.querySelectorAll('.side-menu-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index);
+            closeSideMenu();
+            startStudy(index);
+        });
+    });
+}
+
+// 사이드 메뉴 열기
+document.getElementById('menuBtn').addEventListener('click', () => {
+    document.getElementById('sideMenu').classList.add('active');
+    document.getElementById('menuOverlay').classList.add('active');
+});
+
+// 사이드 메뉴 닫기
+function closeSideMenu() {
+    document.getElementById('sideMenu').classList.remove('active');
+    document.getElementById('menuOverlay').classList.remove('active');
+}
+
+document.getElementById('closeMenuBtn').addEventListener('click', closeSideMenu);
+document.getElementById('menuOverlay').addEventListener('click', closeSideMenu);
 
 // 학습 화면 업데이트
 function updateStudyScreen() {
