@@ -135,16 +135,60 @@ async function processOCR(file) {
     resultDiv.style.display = 'none';
     
     try {
+        // HEIC 파일을 JPEG로 변환 (브라우저 호환성)
+        let processedFile = file;
+        
+        // HEIC 파일인 경우 Canvas로 변환
+        if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic')) {
+            try {
+                // Canvas를 이용해 이미지 리사이즈 및 JPEG 변환
+                const img = await createImageBitmap(file);
+                const canvas = document.createElement('canvas');
+                
+                // 최대 크기 제한 (API 전송 크기 제한)
+                const maxSize = 2000;
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > maxSize || height > maxSize) {
+                    if (width > height) {
+                        height = (height / width) * maxSize;
+                        width = maxSize;
+                    } else {
+                        width = (width / height) * maxSize;
+                        height = maxSize;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Canvas를 Blob으로 변환
+                const blob = await new Promise(resolve => {
+                    canvas.toBlob(resolve, 'image/jpeg', 0.95);
+                });
+                
+                processedFile = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+            } catch (conversionError) {
+                console.error('HEIC 변환 오류:', conversionError);
+                alert('HEIC 파일 변환에 실패했습니다. 다른 형식의 사진을 사용해주세요.');
+                progressDiv.style.display = 'none';
+                return;
+            }
+        }
+        
         // 파일을 Base64로 변환
         const base64Data = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => {
-                // data:image/jpeg;base64, 부분 제거
                 const base64 = reader.result.split(',')[1];
                 resolve(base64);
             };
             reader.onerror = reject;
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(processedFile);
         });
 
         // Claude API 호출
@@ -156,13 +200,14 @@ async function processOCR(file) {
             body: JSON.stringify({
                 image: {
                     data: base64Data,
-                    media_type: file.type
+                    media_type: processedFile.type || 'image/jpeg'
                 }
             })
         });
 
         if (!response.ok) {
-            throw new Error('OCR 처리 실패');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'OCR 처리 실패');
         }
 
         const result = await response.json();
@@ -176,7 +221,17 @@ async function processOCR(file) {
         
     } catch (error) {
         console.error('OCR 오류:', error);
-        alert('텍스트 추출에 실패했습니다. 다시 시도해주세요.');
+        
+        // 에러 메시지 개선
+        let errorMessage = '텍스트 추출에 실패했습니다.';
+        if (error.message.includes('API')) {
+            errorMessage += '\nAPI 설정을 확인해주세요.';
+        } else if (error.message.includes('network')) {
+            errorMessage += '\n네트워크 연결을 확인해주세요.';
+        }
+        errorMessage += '\n\n수동으로 단어를 입력할 수 있습니다.';
+        
+        alert(errorMessage);
         progressDiv.style.display = 'none';
         
         // 실패 시 빈 입력 필드 표시
