@@ -2,37 +2,26 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="국어암기">
     <title>국어 단어암기</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon.svg">
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <!-- 메인 메뉴 화면 -->
+    <!-- 메인 화면 -->
     <div id="menuScreen" class="screen active">
         <div class="container">
             <h1>📚 국어 단어암기</h1>
             
-            <!-- 단어 세트 추가 버튼 -->
-            <div class="add-set-section">
-                <button class="btn btn-primary" id="addSetBtn">
-                    📷 사진으로 단어 추가
-                </button>
-            </div>
-
-            <!-- 단어 세트 목록 -->
-            <div class="word-sets" id="wordSetsList">
-                <!-- 동적으로 생성됨 -->
-            </div>
-
-            <!-- 전체 통합 학습 버튼 -->
-            <button class="btn btn-secondary" id="studyAllBtn" style="display: none;">
-                📖 전체 단어 학습하기
+            <button class="btn btn-primary btn-large" id="addSetBtn">
+                📷 사진으로 단어 추가
             </button>
+
+            <div id="setsList" class="sets-list">
+                <!-- 세트 목록 동적 생성 -->
+            </div>
         </div>
     </div>
 
@@ -42,7 +31,7 @@
             <div class="header">
                 <button class="btn-back" id="ocrBackBtn">← 뒤로</button>
                 <h2>단어 세트 추가</h2>
-                <div style="width: 40px;"></div>
+                <div style="width: 60px;"></div>
             </div>
 
             <div class="upload-section">
@@ -50,19 +39,16 @@
                 <button class="btn btn-primary" id="uploadBtn">
                     📷 사진 촬영/선택
                 </button>
-                <div id="imagePreview" class="image-preview"></div>
             </div>
 
-            <div id="ocrProgress" class="ocr-progress" style="display: none;">
+            <div id="ocrProgress" style="display: none; text-align: center; padding: 40px;">
                 <div class="spinner"></div>
-                <p>단어를 추출하는 중...</p>
+                <p id="progressText">단어를 추출하는 중...</p>
             </div>
 
-            <div id="ocrResult" class="ocr-result" style="display: none;">
-                <h3>추출된 단어 세트</h3>
-                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
-                    📌 각 번호별로 별도의 세트로 저장됩니다. 각 세트를 확인하고 개별적으로 저장하세요.
-                </p>
+            <div id="ocrResult" style="display: none;">
+                <h3>추출된 세트</h3>
+                <p style="color: #666; font-size: 14px;">각 세트를 확인하고 저장하세요</p>
                 <div id="setsContainer"></div>
             </div>
         </div>
@@ -73,18 +59,17 @@
         <div class="study-header">
             <button class="btn-back" id="studyBackBtn">← 뒤로</button>
             <div class="study-progress">
-                <button class="btn-prev-card" id="headerPrevBtn">‹</button>
-                <span id="progressText">0/0</span>
-                <button class="btn-next-card" id="headerNextBtn">›</button>
+                <button class="btn-nav" id="prevBtn">‹</button>
+                <span id="progressText">1/10</span>
+                <button class="btn-nav" id="nextBtn">›</button>
             </div>
-            <button class="btn-icon" id="menuBtn">☰</button>
+            <button class="btn-menu" id="menuBtn">☰</button>
         </div>
 
         <div class="known-counter">
-            <span class="known-icon">✓</span>
-            <span id="knownCount">0</span>
+            <span>✓ <span id="knownCount">0</span></span>
             <span class="divider">|</span>
-            <span id="totalCount">0</span>
+            <span id="totalCount">10</span>
         </div>
 
         <div class="study-container">
@@ -93,43 +78,29 @@
                     <div class="card-front">
                         <div class="card-header">
                             <div></div>
-                            <div></div>
-                            <button class="btn-know-card" id="knowCardBtn">아는카드</button>
+                            <button class="btn-know" id="knowBtn">아는카드</button>
                         </div>
-                        <div class="card-content" id="cardFront"></div>
+                        <div class="card-content" id="cardWord"></div>
                     </div>
                     <div class="card-back">
-                        <div class="card-header">
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                        </div>
-                        <div class="card-content" id="cardBack"></div>
-                        <div class="card-hint" id="cardHint">
-                            <div class="hint-icon">⌄⌄⌄</div>
-                            <div class="hint-text">의미를 가리고 기억해 보세요.<br>생각이 안나면 커버를 조금 내려<br>확인하고 다음 카드로 넘기세요!</div>
-                        </div>
+                        <div class="card-content" id="cardMeaning"></div>
                     </div>
                 </div>
             </div>
 
             <div class="study-footer">
-                <div class="footer-info">
-                    <span id="currentSetName"></span>
-                </div>
-                <div class="footer-hint">강민 할 수 있다!!!</div>
+                <div id="setName"></div>
+                <div class="footer-motto">강민 할 수 있다!!!</div>
             </div>
         </div>
-        
-        <!-- 세트 목록 사이드 메뉴 -->
+
+        <!-- 사이드 메뉴 -->
         <div id="sideMenu" class="side-menu">
             <div class="side-menu-header">
                 <h3>단어 세트</h3>
-                <button class="btn-close-menu" id="closeMenuBtn">✕</button>
+                <button class="btn-close" id="closeMenuBtn">✕</button>
             </div>
-            <div class="side-menu-content" id="sideMenuContent">
-                <!-- 동적으로 생성됨 -->
-            </div>
+            <div id="menuContent" class="side-menu-content"></div>
         </div>
         <div id="menuOverlay" class="menu-overlay"></div>
     </div>

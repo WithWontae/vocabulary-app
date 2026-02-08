@@ -1,15 +1,8 @@
 {
   "name": "vocabulary-app",
   "version": "1.0.0",
-  "description": "국어 단어 암기 웹앱",
-  "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build step needed'"
-  },
+  "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1"
-  },
-  "devDependencies": {
-    "vercel": "^33.0.0"
   }
 }
