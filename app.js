@@ -566,9 +566,25 @@ function updateStudyScreen() {
     document.getElementById('knownCount').textContent = knownCount;
     document.getElementById('totalCount').textContent = set.words.length;
     
+    // 뜻을 줄바꿈으로 분리
+    const meaningLines = currentWord.meaning.split('\n').filter(line => line.trim());
+    const firstLine = meaningLines[0] || currentWord.meaning;
+    const restLines = meaningLines.slice(1).join('\n') || '';
+    
     // 카드 내용
     document.getElementById('cardFront').textContent = currentWord.word;
-    document.getElementById('cardBack').textContent = currentWord.meaning;
+    document.getElementById('cardBack').textContent = firstLine;
+    
+    // 힌트 영역 - 두 번째 줄부터 표시
+    const hintElement = document.querySelector('.hint-text');
+    if (restLines) {
+        hintElement.textContent = restLines;
+        document.getElementById('cardHint').style.display = 'flex';
+    } else {
+        // 추가 설명이 없으면 기본 메시지
+        hintElement.textContent = '의미를 가리고 기억해 보세요.\n생각이 안나면 커버를 조금 내려\n확인하고 다음 카드로 넘기세요!';
+        document.getElementById('cardHint').style.display = 'flex';
+    }
     
     // 푸터 정보
     document.getElementById('currentSetName').textContent = set.name;
