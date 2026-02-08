@@ -135,58 +135,54 @@ async function processOCR(file) {
     resultDiv.style.display = 'none';
     
     try {
-        const worker = await Tesseract.createWorker('kor+chi_tra');
-        const { data: { text } } = await worker.recognize(file);
-        await worker.terminate();
-        
-        // 텍스트 파싱
-        const words = parseOCRText(text);
+        // 파일을 Base64로 변환
+        const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                // data:image/jpeg;base64, 부분 제거
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
+        // Claude API 호출
+        const response = await fetch('/api/ocr', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image: {
+                    data: base64Data,
+                    media_type: file.type
+                }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('OCR 처리 실패');
+        }
+
+        const result = await response.json();
+        const words = result.words || [];
         
         progressDiv.style.display = 'none';
         resultDiv.style.display = 'block';
         
         // 추출된 단어 표시
-        renderWordInputs(words);
+        renderWordInputs(words.length > 0 ? words : [{ word: '', meaning: '' }]);
         
     } catch (error) {
         console.error('OCR 오류:', error);
         alert('텍스트 추출에 실패했습니다. 다시 시도해주세요.');
         progressDiv.style.display = 'none';
-    }
-}
-
-// OCR 텍스트 파싱
-function parseOCRText(text) {
-    const lines = text.split('\n').filter(line => line.trim());
-    const words = [];
-    
-    // 간단한 파싱 로직 - 줄마다 처리
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
         
-        // 빈 줄 건너뛰기
-        if (!line) continue;
-        
-        // 공백이나 탭으로 구분된 경우
-        const parts = line.split(/[\s\t]+/);
-        
-        if (parts.length >= 2) {
-            // 첫 부분은 단어, 나머지는 뜻
-            const word = parts[0];
-            const meaning = parts.slice(1).join(' ');
-            
-            if (word && meaning) {
-                words.push({ word, meaning });
-            }
-        }
+        // 실패 시 빈 입력 필드 표시
+        resultDiv.style.display = 'block';
+        renderWordInputs([{ word: '', meaning: '' }]);
     }
-    
-    // 최소 1개의 빈 항목 추가
-    if (words.length === 0) {
-        words.push({ word: '', meaning: '' });
-    }
-    
-    return words;
 }
 
 // 단어 입력 필드 렌더링
