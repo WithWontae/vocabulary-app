@@ -53,34 +53,17 @@
                 <div id="imagePreview" class="image-preview"></div>
             </div>
 
-            <!-- 이미지 크롭 화면 -->
-            <div id="cropContainer" style="display: none; text-align: center;">
-                <p style="color: #666; margin-bottom: 10px;">드래그해서 영역을 선택하세요</p>
-                <div style="position: relative; display: inline-block; max-width: 100%;">
-                    <canvas id="cropCanvas" style="max-width: 100%; border: 2px solid #ddd; cursor: crosshair;"></canvas>
-                </div>
-                <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
-                    <button class="btn btn-secondary" id="cropCancelBtn">취소</button>
-                    <button class="btn btn-primary" id="cropConfirmBtn">✓ 이 영역으로 OCR</button>
-                </div>
-            </div>
-
             <div id="ocrProgress" class="ocr-progress" style="display: none;">
                 <div class="spinner"></div>
                 <p>단어를 추출하는 중...</p>
             </div>
 
             <div id="ocrResult" class="ocr-result" style="display: none;">
-                <h3>추출된 단어 (수정 가능)</h3>
-                <div class="word-input-section">
-                    <label>세트 이름:</label>
-                    <input type="text" id="setNameInput" placeholder="예: 2025년 1월" class="input-field">
-                </div>
-                <div id="wordsList" class="words-list"></div>
-                <div class="button-group">
-                    <button class="btn btn-secondary" id="addMoreWordBtn">+ 단어 추가</button>
-                    <button class="btn btn-primary" id="saveSetBtn">💾 저장하기</button>
-                </div>
+                <h3>추출된 단어 세트</h3>
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                    여러 세트가 감지되었습니다. 각 세트를 확인하고 저장하세요.
+                </p>
+                <div id="setsContainer"></div>
             </div>
         </div>
     </div>

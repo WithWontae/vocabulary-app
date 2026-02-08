@@ -223,17 +223,6 @@ document.getElementById('studyBackBtn').addEventListener('click', () => {
 
 // 이미지 업로드
 // 이미지 업로드
-let selectedImageFile = null;
-let cropState = {
-    isDragging: false,
-    startX: 0,
-    startY: 0,
-    endX: 0,
-    endY: 0,
-    originalImg: null,
-    scale: 1
-};
-
 document.getElementById('uploadBtn').addEventListener('click', () => {
     document.getElementById('imageInput').click();
 });
@@ -242,192 +231,18 @@ document.getElementById('imageInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    selectedImageFile = file;
-    
-    // 이미지 로드 후 크롭 UI 표시
+    // 이미지 미리보기
     const reader = new FileReader();
-    reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-            showCropUI(img);
-        };
-        img.src = event.target.result;
+    reader.onload = (e) => {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        document.getElementById('imagePreview').innerHTML = '';
+        document.getElementById('imagePreview').appendChild(img);
     };
     reader.readAsDataURL(file);
-});
-
-// 크롭 UI 표시
-function showCropUI(img) {
-    const canvas = document.getElementById('cropCanvas');
-    const ctx = canvas.getContext('2d');
     
-    // 캔버스 크기 설정 (최대 800px)
-    const maxWidth = Math.min(800, window.innerWidth - 40);
-    const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
-    
-    cropState.originalImg = img;
-    cropState.scale = scale;
-    
-    // 이미지 그리기
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    
-    // 크롭 UI 표시
-    document.getElementById('imagePreview').innerHTML = '';
-    document.getElementById('cropContainer').style.display = 'block';
-    
-    // 크롭 이벤트 설정
-    setupCropEvents(canvas);
-}
-
-// 크롭 이벤트 설정
-function setupCropEvents(canvas) {
-    const ctx = canvas.getContext('2d');
-    
-    // 기존 이벤트 제거
-    canvas.onmousedown = null;
-    canvas.onmousemove = null;
-    canvas.onmouseup = null;
-    canvas.ontouchstart = null;
-    canvas.ontouchmove = null;
-    canvas.ontouchend = null;
-    
-    // 마우스 이벤트
-    canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        cropState.isDragging = true;
-        cropState.startX = e.clientX - rect.left;
-        cropState.startY = e.clientY - rect.top;
-        cropState.endX = cropState.startX;
-        cropState.endY = cropState.startY;
-    });
-    
-    canvas.addEventListener('mousemove', (e) => {
-        if (!cropState.isDragging) return;
-        
-        const rect = canvas.getBoundingClientRect();
-        cropState.endX = e.clientX - rect.left;
-        cropState.endY = e.clientY - rect.top;
-        
-        redrawCropArea();
-    });
-    
-    canvas.addEventListener('mouseup', () => {
-        cropState.isDragging = false;
-    });
-    
-    // 터치 이벤트
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        cropState.isDragging = true;
-        cropState.startX = touch.clientX - rect.left;
-        cropState.startY = touch.clientY - rect.top;
-        cropState.endX = cropState.startX;
-        cropState.endY = cropState.startY;
-    });
-    
-    canvas.addEventListener('touchmove', (e) => {
-        if (!cropState.isDragging) return;
-        e.preventDefault();
-        
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        cropState.endX = touch.clientX - rect.left;
-        cropState.endY = touch.clientY - rect.top;
-        
-        redrawCropArea();
-    });
-    
-    canvas.addEventListener('touchend', () => {
-        cropState.isDragging = false;
-    });
-}
-
-// 크롭 영역 다시 그리기
-function redrawCropArea() {
-    const canvas = document.getElementById('cropCanvas');
-    const ctx = canvas.getContext('2d');
-    const img = cropState.originalImg;
-    const scale = cropState.scale;
-    
-    // 이미지 다시 그리기
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    
-    // 선택 영역 계산
-    const x = Math.min(cropState.startX, cropState.endX);
-    const y = Math.min(cropState.startY, cropState.endY);
-    const w = Math.abs(cropState.endX - cropState.startX);
-    const h = Math.abs(cropState.endY - cropState.startY);
-    
-    if (w > 5 && h > 5) {
-        // 반투명 오버레이
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // 선택 영역만 밝게
-        ctx.clearRect(x, y, w, h);
-        ctx.drawImage(img, 
-            x / scale, y / scale, w / scale, h / scale,
-            x, y, w, h
-        );
-        
-        // 초록 테두리
-        ctx.strokeStyle = '#7cb342';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, w, h);
-    }
-}
-
-// 크롭 취소
-document.getElementById('cropCancelBtn').addEventListener('click', () => {
-    document.getElementById('cropContainer').style.display = 'none';
-    document.getElementById('imageInput').value = '';
-    selectedImageFile = null;
-});
-
-// 크롭 확인 및 OCR
-document.getElementById('cropConfirmBtn').addEventListener('click', async () => {
-    const canvas = document.getElementById('cropCanvas');
-    const scale = cropState.scale;
-    
-    // 크롭 영역 계산
-    const x = Math.min(cropState.startX, cropState.endX);
-    const y = Math.min(cropState.startY, cropState.endY);
-    const w = Math.abs(cropState.endX - cropState.startX);
-    const h = Math.abs(cropState.endY - cropState.startY);
-    
-    if (w < 10 || h < 10) {
-        alert('영역을 드래그해서 선택해주세요');
-        return;
-    }
-    
-    // 크롭된 이미지 생성
-    const croppedCanvas = document.createElement('canvas');
-    const croppedCtx = croppedCanvas.getContext('2d');
-    croppedCanvas.width = w;
-    croppedCanvas.height = h;
-    
-    // 원본 이미지에서 크롭
-    croppedCtx.drawImage(
-        cropState.originalImg,
-        x / scale, y / scale, w / scale, h / scale,
-        0, 0, w, h
-    );
-    
-    // Blob으로 변환 후 OCR
-    croppedCanvas.toBlob(async (blob) => {
-        const croppedFile = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
-        
-        // 크롭 UI 숨기기
-        document.getElementById('cropContainer').style.display = 'none';
-        
-        // OCR 실행
-        await processOCR(croppedFile);
-    }, 'image/jpeg', 0.95);
+    // OCR 처리
+    await processOCR(file);
 });
 
 // OCR 처리
@@ -557,32 +372,14 @@ async function processOCR(file) {
             meaning: convertSpecialBrackets(word.meaning)
         }));
         
-        // 번호에서 세트 이름 자동 추출
-        let suggestedSetName = '';
-        if (words.length > 0) {
-            const numbers = words.map(w => w.number).filter(n => n);
-            if (numbers.length > 0) {
-                // 첫 번째와 마지막 번호로 범위 생성
-                const firstNum = numbers[0];
-                const lastNum = numbers[numbers.length - 1];
-                if (firstNum === lastNum) {
-                    suggestedSetName = `${firstNum}번`;
-                } else {
-                    suggestedSetName = `${firstNum}-${lastNum}번`;
-                }
-            }
-        }
-        
         progressDiv.style.display = 'none';
         resultDiv.style.display = 'block';
         
-        // 세트 이름 자동 입력
-        if (suggestedSetName) {
-            document.getElementById('setNameInput').value = suggestedSetName;
-        }
+        // 번호별로 세트 분리
+        const wordSets = separateWordSetsByNumber(words);
         
-        // 추출된 단어 표시
-        renderWordInputs(words.length > 0 ? words : [{ number: '', word: '', meaning: '' }]);
+        // 세트별로 UI 렌더링
+        renderWordSets(wordSets);
         
         if (words.length === 0) {
             alert('단어를 찾지 못했습니다.\n수동으로 입력해주세요.');
@@ -621,7 +418,244 @@ async function processOCR(file) {
     }
 }
 
-// 단어 입력 필드 렌더링
+// 번호별로 단어 세트 분리
+function separateWordSetsByNumber(words) {
+    const sets = {};
+    
+    words.forEach(word => {
+        const num = word.number || 'etc';
+        if (!sets[num]) {
+            sets[num] = [];
+        }
+        sets[num].push(word);
+    });
+    
+    // 번호 순서대로 정렬
+    const sortedSets = [];
+    Object.keys(sets).sort((a, b) => {
+        if (a === 'etc') return 1;
+        if (b === 'etc') return -1;
+        return parseInt(a) - parseInt(b);
+    }).forEach(num => {
+        sortedSets.push({
+            number: num,
+            name: num === 'etc' ? '기타' : `${num}번`,
+            words: sets[num]
+        });
+    });
+    
+    return sortedSets;
+}
+
+// 여러 세트 렌더링
+function renderWordSets(wordSets) {
+    const container = document.getElementById('setsContainer');
+    
+    container.innerHTML = wordSets.map((set, setIndex) => `
+        <div class="word-set-card" data-set-index="${setIndex}">
+            <div class="word-set-header">
+                <h4>${set.name} (${set.words.length}개 단어)</h4>
+            </div>
+            <div class="word-set-content">
+                <div class="word-input-section">
+                    <label>세트 이름:</label>
+                    <input type="text" 
+                           class="set-name-input input-field" 
+                           value="${set.name}" 
+                           data-set-index="${setIndex}"
+                           placeholder="예: 22번">
+                </div>
+                <div class="words-list-mini">
+                    ${set.words.map((w, i) => `
+                        <div class="word-item-mini">
+                            <span class="word-mini">${w.word}</span>
+                            <span class="meaning-mini">${w.meaning.split('\n')[0]}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-secondary btn-edit-set" data-set-index="${setIndex}">
+                        ✏️ 수정
+                    </button>
+                    <button class="btn btn-primary btn-save-set" data-set-index="${setIndex}">
+                        💾 저장
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    // 저장 버튼 이벤트
+    document.querySelectorAll('.btn-save-set').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const setIndex = parseInt(this.dataset.setIndex);
+            saveWordSet(wordSets[setIndex], setIndex);
+        });
+    });
+    
+    // 수정 버튼 이벤트
+    document.querySelectorAll('.btn-edit-set').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const setIndex = parseInt(this.dataset.setIndex);
+            showEditMode(wordSets[setIndex], setIndex);
+        });
+    });
+}
+
+// 세트 저장
+function saveWordSet(wordSet, setIndex) {
+    const setNameInput = document.querySelector(`.set-name-input[data-set-index="${setIndex}"]`);
+    const setName = setNameInput.value.trim();
+    
+    if (!setName) {
+        alert('세트 이름을 입력해주세요');
+        setNameInput.focus();
+        return;
+    }
+    
+    // 이미 존재하는 세트 이름 확인
+    const existingSet = AppState.wordSets.find(s => s.name === setName);
+    if (existingSet) {
+        if (!confirm(`"${setName}" 세트가 이미 있습니다.\n단어를 추가하시겠습니까?`)) {
+            return;
+        }
+        // 기존 세트에 단어 추가
+        existingSet.words.push(...wordSet.words);
+        saveData();
+    } else {
+        // 새 세트 추가
+        AppState.wordSets.push({
+            name: setName,
+            words: wordSet.words.map(w => ({
+                word: w.word,
+                meaning: w.meaning,
+                known: false
+            })),
+            createdAt: Date.now()
+        });
+        saveData();
+    }
+    
+    alert(`"${setName}" 세트가 저장되었습니다!`);
+    
+    // 저장된 세트 카드 스타일 변경
+    const card = document.querySelector(`.word-set-card[data-set-index="${setIndex}"]`);
+    card.style.opacity = '0.6';
+    card.style.pointerEvents = 'none';
+    
+    const saveBtn = card.querySelector('.btn-save-set');
+    saveBtn.textContent = '✓ 저장됨';
+    saveBtn.disabled = true;
+}
+
+// 수정 모드로 전환
+function showEditMode(wordSet, setIndex) {
+    // 전체 화면 편집 모달 생성
+    const modal = document.createElement('div');
+    modal.className = 'edit-modal';
+    modal.innerHTML = `
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">
+                <h3>${wordSet.name} 수정</h3>
+                <button class="btn-close-modal">✕</button>
+            </div>
+            <div class="edit-modal-body">
+                <div class="word-input-section">
+                    <label>세트 이름:</label>
+                    <input type="text" id="editSetName" value="${wordSet.name}" class="input-field">
+                </div>
+                <div id="editWordsList" class="words-list"></div>
+                <button class="btn btn-secondary" id="editAddWordBtn">+ 단어 추가</button>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="btn btn-secondary btn-cancel-edit">취소</button>
+                <button class="btn btn-primary btn-confirm-edit">저장</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 단어 목록 렌더링
+    renderEditableWords(wordSet.words);
+    
+    // 닫기 버튼
+    modal.querySelector('.btn-close-modal').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    modal.querySelector('.btn-cancel-edit').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    // 단어 추가
+    modal.querySelector('#editAddWordBtn').addEventListener('click', () => {
+        wordSet.words.push({ number: '', word: '', meaning: '' });
+        renderEditableWords(wordSet.words);
+    });
+    
+    // 저장
+    modal.querySelector('.btn-confirm-edit').addEventListener('click', () => {
+        // 수정된 내용 수집
+        const editedWords = [];
+        document.querySelectorAll('#editWordsList .word-item').forEach(item => {
+            const word = item.querySelector('.word-input').value.trim();
+            const meaning = item.querySelector('.meaning-input').value.trim();
+            if (word && meaning) {
+                editedWords.push({ word, meaning });
+            }
+        });
+        
+        if (editedWords.length === 0) {
+            alert('최소 1개의 단어를 입력해주세요');
+            return;
+        }
+        
+        // 세트 업데이트
+        wordSet.words = editedWords;
+        wordSet.name = document.getElementById('editSetName').value.trim();
+        
+        // UI 업데이트
+        renderWordSets([wordSet]);
+        document.body.removeChild(modal);
+    });
+}
+
+// 편집 가능한 단어 목록 렌더링
+function renderEditableWords(words) {
+    const container = document.getElementById('editWordsList');
+    container.innerHTML = words.map((word, index) => `
+        <div class="word-item" data-index="${index}">
+            <input type="text" 
+                   placeholder="단어" 
+                   value="${word.word || ''}" 
+                   class="word-input">
+            <textarea placeholder="뜻" 
+                      class="meaning-input"
+                      rows="1">${word.meaning || ''}</textarea>
+            <button class="remove-word-btn" onclick="removeEditWord(${index})">×</button>
+        </div>
+    `).join('');
+    
+    // textarea 높이 자동 조절
+    document.querySelectorAll('#editWordsList .meaning-input').forEach(textarea => {
+        autoResizeTextarea(textarea);
+        textarea.addEventListener('input', function() {
+            autoResizeTextarea(this);
+        });
+    });
+}
+
+function removeEditWord(index) {
+    const items = document.querySelectorAll('#editWordsList .word-item');
+    if (items.length > 1) {
+        items[index].remove();
+    } else {
+        alert('최소 1개의 단어는 필요합니다');
+    }
+}
+
+// 단어 입력 필드 렌더링 (기존 함수 유지 - 수정 모드용)
 function renderWordInputs(words) {
     const container = document.getElementById('wordsList');
     
