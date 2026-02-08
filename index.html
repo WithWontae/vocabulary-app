@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="언어 단어장">
+    <title>언어영역 단어 암기장</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 메인 메뉴 화면 -->
+    <div id="menuScreen" class="screen active">
+        <div class="container">
+            <h1>📚 언어영역 단어장</h1>
+            
+            <!-- 단어 세트 추가 버튼 -->
+            <div class="add-set-section">
+                <button class="btn btn-primary" id="addSetBtn">
+                    📷 사진으로 단어 추가
+                </button>
+            </div>
+
+            <!-- 단어 세트 목록 -->
+            <div class="word-sets" id="wordSetsList">
+                <!-- 동적으로 생성됨 -->
+            </div>
+
+            <!-- 전체 통합 학습 버튼 -->
+            <button class="btn btn-secondary" id="studyAllBtn" style="display: none;">
+                📖 전체 단어 학습하기
+            </button>
+        </div>
+    </div>
+
+    <!-- OCR 화면 -->
+    <div id="ocrScreen" class="screen">
+        <div class="container">
+            <div class="header">
+                <button class="btn-back" id="ocrBackBtn">← 뒤로</button>
+                <h2>단어 세트 추가</h2>
+            </div>
+
+            <div class="upload-section">
+                <input type="file" id="imageInput" accept="image/*" capture="environment" style="display: none;">
+                <button class="btn btn-primary" id="uploadBtn">
+                    📷 사진 촬영/선택
+                </button>
+                <div id="imagePreview" class="image-preview"></div>
+            </div>
+
+            <div id="ocrProgress" class="ocr-progress" style="display: none;">
+                <div class="spinner"></div>
+                <p>단어를 추출하는 중...</p>
+            </div>
+
+            <div id="ocrResult" class="ocr-result" style="display: none;">
+                <h3>추출된 단어 (수정 가능)</h3>
+                <div class="word-input-section">
+                    <label>세트 이름:</label>
+                    <input type="text" id="setNameInput" placeholder="예: 2025년 1월" class="input-field">
+                </div>
+                <div id="wordsList" class="words-list"></div>
+                <div class="button-group">
+                    <button class="btn btn-secondary" id="addMoreWordBtn">+ 단어 추가</button>
+                    <button class="btn btn-primary" id="saveSetBtn">💾 저장하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 학습 화면 -->
+    <div id="studyScreen" class="screen">
+        <div class="study-header">
+            <button class="btn-back" id="studyBackBtn">← 뒤로</button>
+            <div class="study-info">
+                <span id="currentSetName"></span>
+                <span id="progressText">0/0</span>
+            </div>
+            <button class="btn-icon" id="shuffleBtn">🔀</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="study-container">
+            <div class="card-wrapper">
+                <div class="card" id="flashCard">
+                    <div class="card-front">
+                        <div class="card-content" id="cardFront"></div>
+                    </div>
+                    <div class="card-back">
+                        <div class="card-content" id="cardBack"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-controls">
+                <button class="btn-control" id="prevBtn">←</button>
+                <button class="btn-control btn-flip" id="flipBtn">뒤집기</button>
+                <button class="btn-control" id="nextBtn">→</button>
+            </div>
+
+            <div class="mastery-controls">
+                <button class="btn-mastery btn-unknown" id="unknownBtn">모르겠어요</button>
+                <button class="btn-mastery btn-known" id="knownBtn">암기했어요 ✓</button>
+            </div>
+
+            <div class="study-options">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="hideKnownCheck">
+                    암기한 단어 숨기기
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
