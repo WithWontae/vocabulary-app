@@ -48,23 +48,27 @@ export default async function handler(req, res) {
               text: `이 이미지에서 한국어 단어와 그 뜻을 추출해주세요.
 
 **이미지 형식:**
-- 각 줄에 2개씩 단어가 있습니다
+- 각 줄에 번호가 있을 수 있습니다 (예: 22, 23)
 - 왼쪽: 단어 (한자, 한글, 영어 등)
-- 오른쪽: 뜻 (한국어 설명)
+- 오른쪽: 뜻 (한국어 설명, 여러 줄일 수 있음)
 
 **추출 규칙:**
 1. 이미지에 있는 모든 단어를 빠짐없이 추출
-2. 단어와 뜻을 정확히 구분
-3. 오타나 인식 오류 최소화
-4. 단어가 명확하지 않으면 최선을 다해 추론
+2. 번호가 있으면 번호도 함께 추출
+3. 뜻이 여러 줄이면 모두 포함 (줄바꿈은 공백으로 변환)
+4. 단어와 뜻을 정확히 구분
+5. 오타나 인식 오류 최소화
 
 **출력 형식:**
-반드시 아래 형식의 JSON 배열만 반환하세요. 다른 설명이나 주석은 절대 포함하지 마세요.
+반드시 아래 형식의 JSON 배열만 반환하세요.
 
 [
-  {"word": "可否", "meaning": "옳고 그름, 좋고 나쁨"},
-  {"word": "comfortable", "meaning": "편안한"}
+  {"number": "22", "word": "可否", "meaning": "옳고 그름, 좋고 나쁨"},
+  {"number": "23", "word": "comfortable", "meaning": "편안한"}
 ]
+
+- number: 번호가 없으면 빈 문자열 ""
+- meaning: 뜻 전체를 하나의 문자열로
 
 JSON만 출력하세요.`,
             },
@@ -105,7 +109,7 @@ JSON만 출력하세요.`,
         throw new Error('빈 배열');
       }
       
-      // 각 항목 검증
+      // 각 항목 검증 및 정리
       words = words.filter(item => 
         item && 
         typeof item === 'object' && 
@@ -113,7 +117,11 @@ JSON만 출력하세요.`,
         item.meaning &&
         item.word.trim() !== '' &&
         item.meaning.trim() !== ''
-      );
+      ).map(item => ({
+        number: item.number || '',
+        word: item.word.trim(),
+        meaning: item.meaning.trim()
+      }));
       
       if (words.length === 0) {
         throw new Error('유효한 단어 없음');
