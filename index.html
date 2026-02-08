@@ -96,16 +96,17 @@
                 <div class="card" id="flashCard">
                     <div class="card-front">
                         <div class="card-header">
-                            <button class="card-icon-btn" id="soundBtn">🔊</button>
-                            <button class="card-icon-btn" id="starBtn">☆</button>
+                            <div></div>
+                            <div></div>
                             <button class="btn-know-card" id="knowCardBtn">아는카드</button>
                         </div>
                         <div class="card-content" id="cardFront"></div>
                     </div>
                     <div class="card-back">
                         <div class="card-header">
-                            <button class="card-icon-btn" id="soundBtn2">🔊</button>
-                            <button class="card-icon-btn" id="starBtn2">☆</button>
+                            <div></div>
+                            <div></div>
+                            <div></div>
                         </div>
                         <div class="card-content" id="cardBack"></div>
                         <div class="card-hint" id="cardHint">
@@ -120,9 +121,21 @@
                 <div class="footer-info">
                     <span id="currentSetName"></span>
                 </div>
-                <div class="footer-hint">세계 원서 읽기가 목표라면 (#클래스카드 앱 강추!)</div>
+                <div class="footer-hint">강민 할 수 있다!!!</div>
             </div>
         </div>
+        
+        <!-- 세트 목록 사이드 메뉴 -->
+        <div id="sideMenu" class="side-menu">
+            <div class="side-menu-header">
+                <h3>단어 세트</h3>
+                <button class="btn-close-menu" id="closeMenuBtn">✕</button>
+            </div>
+            <div class="side-menu-content" id="sideMenuContent">
+                <!-- 동적으로 생성됨 -->
+            </div>
+        </div>
+        <div id="menuOverlay" class="menu-overlay"></div>
     </div>
 
     <script src="app.js"></script>
