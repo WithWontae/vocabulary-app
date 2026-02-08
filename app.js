@@ -8,6 +8,124 @@ const AppState = {
     shuffled: false
 };
 
+// 특수 괄호 문자를 일반 괄호로 변환
+function convertSpecialBrackets(text) {
+    if (!text) return text;
+    
+    // 원문자 (㉮, ㉯, ㉰, ㉱, ㉲, ㉳, ㉴, ㉵, ㉶, ㉷ 등) - (한글)
+    const circledMap = {
+        '㉮': '(ㄱ)', '㉯': '(ㄴ)', '㉰': '(ㄷ)', '㉱': '(ㄹ)', '㉲': '(ㅁ)',
+        '㉳': '(ㅂ)', '㉴': '(ㅅ)', '㉵': '(ㅇ)', '㉶': '(ㅈ)', '㉷': '(ㅊ)',
+        '㉸': '(ㅋ)', '㉹': '(ㅌ)', '㉺': '(ㅍ)', '㉻': '(ㅎ)'
+    };
+    
+    // 괄호 한글 (㈀, ㈁, ㈂ 등) - (한글)
+    const parenthesisMap = {
+        '㈀': '(ㄱ)', '㈁': '(ㄴ)', '㈂': '(ㄷ)', '㈃': '(ㄹ)', '㈄': '(ㅁ)',
+        '㈅': '(ㅂ)', '㈆': '(ㅅ)', '㈇': '(ㅇ)', '㈈': '(ㅈ)', '㈉': '(ㅊ)',
+        '㈊': '(ㅋ)', '㈋': '(ㅌ)', '㈌': '(ㅍ)', '㈍': '(ㅎ)'
+    };
+    
+    // 원숫자 (①, ②, ③ 등) - (숫자)
+    const circledNumbersMap = {
+        '①': '(1)', '②': '(2)', '③': '(3)', '④': '(4)', '⑤': '(5)',
+        '⑥': '(6)', '⑦': '(7)', '⑧': '(8)', '⑨': '(9)', '⑩': '(10)',
+        '⑪': '(11)', '⑫': '(12)', '⑬': '(13)', '⑭': '(14)', '⑮': '(15)'
+    };
+    
+    // 네모 한글 (㉠, ㉡, ㉢ 등) - [한글]
+    const squaredMap = {
+        '㉠': '[ㄱ]', '㉡': '[ㄴ]', '㉢': '[ㄷ]', '㉣': '[ㄹ]', '㉤': '[ㅁ]',
+        '㉥': '[ㅂ]', '㉦': '[ㅅ]', '㉧': '[ㅇ]', '㉨': '[ㅈ]', '㉩': '[ㅊ]',
+        '㉪': '[ㅋ]', '㉫': '[ㅌ]', '㉬': '[ㅍ]', '㉭': '[ㅎ]'
+    };
+    
+    // 네모 숫자 (⑴, ⑵, ⑶ 등) - [숫자]
+    const squaredNumbersMap = {
+        '⑴': '[1]', '⑵': '[2]', '⑶': '[3]', '⑷': '[4]', '⑸': '[5]',
+        '⑹': '[6]', '⑺': '[7]', '⑻': '[8]', '⑼': '[9]', '⑽': '[10]',
+        '⑾': '[11]', '⑿': '[12]', '⒀': '[13]', '⒁': '[14]', '⒂': '[15]'
+    };
+    
+    // 검은 네모 숫자 (❶, ❷, ❸ 등) - [숫자]
+    const blackSquaredMap = {
+        '❶': '[1]', '❷': '[2]', '❸': '[3]', '❹': '[4]', '❺': '[5]',
+        '❻': '[6]', '❼': '[7]', '❽': '[8]', '❾': '[9]', '❿': '[10]'
+    };
+    
+    // 작은 원 한글 (ㄱ), ㄴ), ㄷ) 등) - 'ㄱ), 'ㄴ), 'ㄷ)
+    const smallCircledMap = {
+        'ⓐ': "'ㄱ)", 'ⓑ': "'ㄴ)", 'ⓒ': "'ㄷ)", 'ⓓ': "'ㄹ)", 'ⓔ': "'ㅁ)",
+        'ⓕ': "'ㅂ)", 'ⓖ': "'ㅅ)", 'ⓗ': "'ㅇ)", 'ⓘ': "'ㅈ)", 'ⓙ': "'ㅊ)",
+        'ⓚ': "'ㅋ)", 'ⓛ': "'ㅌ)", 'ⓜ': "'ㅍ)", 'ⓝ': "'ㅎ)"
+    };
+    
+    // 겹원 한글 (ㄱ)), ㄴ)), ㄷ)) 등) - "ㄱ), "ㄴ), "ㄷ)
+    const doubleCircledMap = {
+        '⓵': '"ㄱ)', '⓶': '"ㄴ)', '⓷': '"ㄷ)', '⓸': '"ㄹ)', '⓹': '"ㅁ)',
+        '⓺': '"ㅂ)', '⓻': '"ㅅ)', '⓼': '"ㅇ)', '⓽': '"ㅈ)', '⓾': '"ㅊ)'
+    };
+    
+    // 모든 맵핑 적용
+    let result = text;
+    
+    Object.keys(circledMap).forEach(key => {
+        result = result.replace(new RegExp(key, 'g'), circledMap[key]);
+    });
+    
+    Object.keys(parenthesisMap).forEach(key => {
+        result = result.replace(new RegExp(key, 'g'), parenthesisMap[key]);
+    });
+    
+    Object.keys(circledNumbersMap).forEach(key => {
+        result = result.replace(new RegExp(key, 'g'), circledNumbersMap[key]);
+    });
+    
+    Object.keys(squaredMap).forEach(key => {
+        result = result.replace(new RegExp(key, 'g'), squaredMap[key]);
+    });
+    
+    Object.keys(squaredNumbersMap).forEach(key => {
+        result = result.replace(new RegExp(key, 'g'), squaredNumbersMap[key]);
+    });
+    
+    Object.keys(blackSquaredMap).forEach(key => {
+        result = result.replace(new RegExp(key, 'g'), blackSquaredMap[key]);
+    });
+    
+    Object.keys(smallCircledMap).forEach(key => {
+        result = result.replace(new RegExp(key, 'g'), smallCircledMap[key]);
+    });
+    
+    Object.keys(doubleCircledMap).forEach(key => {
+        result = result.replace(new RegExp(key, 'g'), doubleCircledMap[key]);
+    });
+    
+    // 나머지 모든 한글 특수문자 자동 변환 (유니코드 범위)
+    // 한글 자모 범위: ㄱ-ㅎ (U+3131 ~ U+314E), 가-힣 (U+AC00 ~ U+D7A3)
+    // 괄호형 한글 범위: U+3200 ~ U+321E, U+3260 ~ U+327F 등
+    result = result.replace(/[\u3200-\u321E\u3260-\u327F\u24D0-\u24E9]/g, (match) => {
+        const code = match.charCodeAt(0);
+        
+        // 괄호형 한글 (㈎-㈜ 등)
+        if (code >= 0x320E && code <= 0x321E) {
+            const hangul = String.fromCharCode(0x3131 + (code - 0x320E)); // ㄱ-ㅎ 매핑
+            return `'${hangul})`;
+        }
+        
+        // 기타 특수문자는 그대로 '문자)' 형식으로
+        // 특수문자 내부의 한글 추출 시도
+        const normalized = match.normalize('NFKD');
+        if (normalized.length > 0 && normalized !== match) {
+            return `'${normalized})`;
+        }
+        
+        return `'${match})`;
+    });
+    
+    return result;
+}
+
 // 로컬스토리지 키
 const STORAGE_KEY = 'vocabularyAppData';
 
@@ -245,7 +363,13 @@ async function processOCR(file) {
         const result = await response.json();
         console.log('추출된 단어 개수:', result.words?.length || 0);
         
-        const words = result.words || [];
+        let words = result.words || [];
+        
+        // 특수 괄호 문자를 일반 괄호로 변환
+        words = words.map(word => ({
+            ...word,
+            meaning: convertSpecialBrackets(word.meaning)
+        }));
         
         // 번호에서 세트 이름 자동 추출
         let suggestedSetName = '';
