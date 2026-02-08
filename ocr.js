@@ -1,37 +1,25 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-export const config = {
-  runtime: 'edge',
-};
-
-export default async function handler(request) {
+export default async function handler(req, res) {
   // CORS 헤더 설정
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   // Preflight 요청 처리
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { image } = await request.json();
+    const { image } = req.body;
 
     if (!image) {
-      return new Response(JSON.stringify({ error: 'No image provided' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return res.status(400).json({ error: 'No image provided' });
     }
 
     // Claude API 초기화
@@ -94,22 +82,13 @@ JSON만 반환하고 다른 설명은 하지 마세요.`,
       words = [];
     }
 
-    return new Response(JSON.stringify({ words }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return res.status(200).json({ words });
 
   } catch (error) {
     console.error('OCR 오류:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: 'OCR 처리 중 오류가 발생했습니다.',
-        details: error.message 
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return res.status(500).json({ 
+      error: 'OCR 처리 중 오류가 발생했습니다.',
+      details: error.message 
+    });
   }
 }
