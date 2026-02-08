@@ -29,8 +29,8 @@ export default async function handler(req, res) {
 
     // 이미지에서 단어 추출
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2048,
       messages: [
         {
           role: 'user',
@@ -45,19 +45,28 @@ export default async function handler(req, res) {
             },
             {
               type: 'text',
-              text: `이 이미지에서 한국어 단어와 뜻을 추출해주세요.
+              text: `이 이미지에서 한국어 단어와 그 뜻을 추출해주세요.
 
-형식은 다음과 같습니다:
-- 왼쪽: 단어 (한자 또는 한글)
-- 오른쪽: 뜻
+**이미지 형식:**
+- 각 줄에 2개씩 단어가 있습니다
+- 왼쪽: 단어 (한자, 한글, 영어 등)
+- 오른쪽: 뜻 (한국어 설명)
 
-JSON 배열로 반환해주세요:
+**추출 규칙:**
+1. 이미지에 있는 모든 단어를 빠짐없이 추출
+2. 단어와 뜻을 정확히 구분
+3. 오타나 인식 오류 최소화
+4. 단어가 명확하지 않으면 최선을 다해 추론
+
+**출력 형식:**
+반드시 아래 형식의 JSON 배열만 반환하세요. 다른 설명이나 주석은 절대 포함하지 마세요.
+
 [
   {"word": "可否", "meaning": "옳고 그름, 좋고 나쁨"},
   {"word": "comfortable", "meaning": "편안한"}
 ]
 
-JSON만 반환하고 다른 설명은 하지 마세요.`,
+JSON만 출력하세요.`,
             },
           ],
         },
@@ -65,20 +74,56 @@ JSON만 반환하고 다른 설명은 하지 마세요.`,
     });
 
     // Claude 응답에서 텍스트 추출
-    const responseText = message.content[0].text;
+    const responseText = message.content[0].text.trim();
+    
+    console.log('Claude 응답:', responseText);
     
     // JSON 파싱
     let words;
     try {
-      // JSON 코드 블록 제거
-      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        words = JSON.parse(jsonMatch[0]);
-      } else {
-        words = JSON.parse(responseText);
+      // Markdown 코드 블록 제거
+      let jsonText = responseText;
+      
+      // ```json ... ``` 형식 제거
+      if (jsonText.includes('```')) {
+        const match = jsonText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+        if (match) {
+          jsonText = match[1];
+        }
       }
+      
+      // [ ... ] 추출
+      const arrayMatch = jsonText.match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        jsonText = arrayMatch[0];
+      }
+      
+      words = JSON.parse(jsonText);
+      
+      // 유효성 검사
+      if (!Array.isArray(words) || words.length === 0) {
+        throw new Error('빈 배열');
+      }
+      
+      // 각 항목 검증
+      words = words.filter(item => 
+        item && 
+        typeof item === 'object' && 
+        item.word && 
+        item.meaning &&
+        item.word.trim() !== '' &&
+        item.meaning.trim() !== ''
+      );
+      
+      if (words.length === 0) {
+        throw new Error('유효한 단어 없음');
+      }
+      
     } catch (parseError) {
       console.error('JSON 파싱 오류:', parseError);
+      console.error('원본 응답:', responseText);
+      
+      // 파싱 실패 시 빈 배열 반환
       words = [];
     }
 
