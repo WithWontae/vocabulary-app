@@ -222,6 +222,18 @@ document.getElementById('studyBackBtn').addEventListener('click', () => {
 });
 
 // 이미지 업로드
+// 이미지 업로드
+let selectedImageFile = null;
+let cropState = {
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    endX: 0,
+    endY: 0,
+    originalImg: null,
+    scale: 1
+};
+
 document.getElementById('uploadBtn').addEventListener('click', () => {
     document.getElementById('imageInput').click();
 });
@@ -230,18 +242,192 @@ document.getElementById('imageInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // 이미지 미리보기
+    selectedImageFile = file;
+    
+    // 이미지 로드 후 크롭 UI 표시
     const reader = new FileReader();
-    reader.onload = (e) => {
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        document.getElementById('imagePreview').innerHTML = '';
-        document.getElementById('imagePreview').appendChild(img);
+    reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+            showCropUI(img);
+        };
+        img.src = event.target.result;
     };
     reader.readAsDataURL(file);
+});
+
+// 크롭 UI 표시
+function showCropUI(img) {
+    const canvas = document.getElementById('cropCanvas');
+    const ctx = canvas.getContext('2d');
     
-    // OCR 처리
-    await processOCR(file);
+    // 캔버스 크기 설정 (최대 800px)
+    const maxWidth = Math.min(800, window.innerWidth - 40);
+    const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    
+    cropState.originalImg = img;
+    cropState.scale = scale;
+    
+    // 이미지 그리기
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    
+    // 크롭 UI 표시
+    document.getElementById('imagePreview').innerHTML = '';
+    document.getElementById('cropContainer').style.display = 'block';
+    
+    // 크롭 이벤트 설정
+    setupCropEvents(canvas);
+}
+
+// 크롭 이벤트 설정
+function setupCropEvents(canvas) {
+    const ctx = canvas.getContext('2d');
+    
+    // 기존 이벤트 제거
+    canvas.onmousedown = null;
+    canvas.onmousemove = null;
+    canvas.onmouseup = null;
+    canvas.ontouchstart = null;
+    canvas.ontouchmove = null;
+    canvas.ontouchend = null;
+    
+    // 마우스 이벤트
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        cropState.isDragging = true;
+        cropState.startX = e.clientX - rect.left;
+        cropState.startY = e.clientY - rect.top;
+        cropState.endX = cropState.startX;
+        cropState.endY = cropState.startY;
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+        if (!cropState.isDragging) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        cropState.endX = e.clientX - rect.left;
+        cropState.endY = e.clientY - rect.top;
+        
+        redrawCropArea();
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+        cropState.isDragging = false;
+    });
+    
+    // 터치 이벤트
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        cropState.isDragging = true;
+        cropState.startX = touch.clientX - rect.left;
+        cropState.startY = touch.clientY - rect.top;
+        cropState.endX = cropState.startX;
+        cropState.endY = cropState.startY;
+    });
+    
+    canvas.addEventListener('touchmove', (e) => {
+        if (!cropState.isDragging) return;
+        e.preventDefault();
+        
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        cropState.endX = touch.clientX - rect.left;
+        cropState.endY = touch.clientY - rect.top;
+        
+        redrawCropArea();
+    });
+    
+    canvas.addEventListener('touchend', () => {
+        cropState.isDragging = false;
+    });
+}
+
+// 크롭 영역 다시 그리기
+function redrawCropArea() {
+    const canvas = document.getElementById('cropCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = cropState.originalImg;
+    const scale = cropState.scale;
+    
+    // 이미지 다시 그리기
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    
+    // 선택 영역 계산
+    const x = Math.min(cropState.startX, cropState.endX);
+    const y = Math.min(cropState.startY, cropState.endY);
+    const w = Math.abs(cropState.endX - cropState.startX);
+    const h = Math.abs(cropState.endY - cropState.startY);
+    
+    if (w > 5 && h > 5) {
+        // 반투명 오버레이
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 선택 영역만 밝게
+        ctx.clearRect(x, y, w, h);
+        ctx.drawImage(img, 
+            x / scale, y / scale, w / scale, h / scale,
+            x, y, w, h
+        );
+        
+        // 초록 테두리
+        ctx.strokeStyle = '#7cb342';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, w, h);
+    }
+}
+
+// 크롭 취소
+document.getElementById('cropCancelBtn').addEventListener('click', () => {
+    document.getElementById('cropContainer').style.display = 'none';
+    document.getElementById('imageInput').value = '';
+    selectedImageFile = null;
+});
+
+// 크롭 확인 및 OCR
+document.getElementById('cropConfirmBtn').addEventListener('click', async () => {
+    const canvas = document.getElementById('cropCanvas');
+    const scale = cropState.scale;
+    
+    // 크롭 영역 계산
+    const x = Math.min(cropState.startX, cropState.endX);
+    const y = Math.min(cropState.startY, cropState.endY);
+    const w = Math.abs(cropState.endX - cropState.startX);
+    const h = Math.abs(cropState.endY - cropState.startY);
+    
+    if (w < 10 || h < 10) {
+        alert('영역을 드래그해서 선택해주세요');
+        return;
+    }
+    
+    // 크롭된 이미지 생성
+    const croppedCanvas = document.createElement('canvas');
+    const croppedCtx = croppedCanvas.getContext('2d');
+    croppedCanvas.width = w;
+    croppedCanvas.height = h;
+    
+    // 원본 이미지에서 크롭
+    croppedCtx.drawImage(
+        cropState.originalImg,
+        x / scale, y / scale, w / scale, h / scale,
+        0, 0, w, h
+    );
+    
+    // Blob으로 변환 후 OCR
+    croppedCanvas.toBlob(async (blob) => {
+        const croppedFile = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
+        
+        // 크롭 UI 숨기기
+        document.getElementById('cropContainer').style.display = 'none';
+        
+        // OCR 실행
+        await processOCR(croppedFile);
+    }, 'image/jpeg', 0.95);
 });
 
 // OCR 처리
