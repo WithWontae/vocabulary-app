@@ -490,8 +490,25 @@ document.getElementById('importInput').addEventListener('change', (e) => {
     const reader = new FileReader();
     reader.onload = () => {
         try {
-            const data = JSON.parse(reader.result);
-            if (!Array.isArray(data)) throw new Error('배열이 아님');
+            const text = reader.result.trim();
+            let data;
+
+            // JSON 파싱 시도
+            try {
+                data = JSON.parse(text);
+            } catch {
+                // BOM 제거 후 재시도
+                data = JSON.parse(text.replace(/^\uFEFF/, ''));
+            }
+
+            // 단일 객체인 경우 배열로 변환
+            if (!Array.isArray(data)) {
+                if (data && data.name && Array.isArray(data.words)) {
+                    data = [data];
+                } else {
+                    throw new Error('올바른 세트 형식이 아닙니다');
+                }
+            }
 
             const validSets = data.filter(set =>
                 set && set.name && Array.isArray(set.words) && set.words.length > 0
@@ -521,6 +538,9 @@ document.getElementById('importInput').addEventListener('change', (e) => {
             alert('파일을 읽을 수 없습니다: ' + err.message);
         }
     };
-    reader.readAsText(file);
+    reader.onerror = () => {
+        alert('파일 읽기에 실패했습니다');
+    };
+    reader.readAsText(file, 'UTF-8');
     e.target.value = '';
 });
