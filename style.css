@@ -771,6 +771,11 @@ h1 {
 
 @media (max-width: 480px) {
     .card-word {
-        font-size: 42px;
+        font-size: 14px;
+    }
+
+    .card-meaning-text {
+        padding: 20px;
+        font-size: 32px;
     }
 }
