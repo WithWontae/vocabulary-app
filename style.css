@@ -446,6 +446,8 @@ h1 {
     padding: 20px 30px;
     word-break: keep-all;
     line-height: 1.2;
+    touch-action: pan-y;
+    user-select: none;
 }
 
 .card-meaning-area {

@@ -420,6 +420,95 @@ function updateCard() {
     document.addEventListener('mouseup', onEnd);
 })();
 
+// 좌우 스와이프로 카드 넘기기
+(function initCardSwipe() {
+    const card = document.getElementById('flashCard');
+    let startX = 0;
+    let startY = 0;
+    let deltaX = 0;
+    let isSwiping = false;
+    let directionLocked = false; // 방향 잠금 (수직/수평 판별 후)
+
+    card.addEventListener('touchstart', function(e) {
+        // 커버/뜻 영역은 수직 드래그 전용 → 스와이프 무시
+        if (e.target.closest('.card-meaning-area')) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        deltaX = 0;
+        isSwiping = false;
+        directionLocked = false;
+    }, { passive: true });
+
+    card.addEventListener('touchmove', function(e) {
+        if (e.target.closest('.card-meaning-area')) return;
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const diffX = currentX - startX;
+        const diffY = currentY - startY;
+
+        // 첫 10px 이동으로 방향 판별
+        if (!directionLocked && (Math.abs(diffX) > 10 || Math.abs(diffY) > 10)) {
+            directionLocked = true;
+            isSwiping = Math.abs(diffX) > Math.abs(diffY); // 수평이면 스와이프
+        }
+
+        if (!isSwiping) return;
+        e.preventDefault();
+        deltaX = diffX;
+        card.style.transition = 'none';
+        card.style.transform = `translateX(${deltaX}px)`;
+        card.style.opacity = Math.max(0.5, 1 - Math.abs(deltaX) / 500);
+    }, { passive: false });
+
+    card.addEventListener('touchend', function() {
+        if (!isSwiping) return;
+        const threshold = card.offsetWidth * 0.25;
+        const words = AppState.currentSet.words;
+
+        if (deltaX < -threshold && AppState.currentIndex < words.length - 1) {
+            // 왼쪽 스와이프 → 다음
+            card.style.transition = 'transform 0.2s, opacity 0.2s';
+            card.style.transform = 'translateX(-100%)';
+            card.style.opacity = '0';
+            setTimeout(() => {
+                AppState.currentIndex++;
+                updateCard();
+                card.style.transition = 'none';
+                card.style.transform = 'translateX(100%)';
+                requestAnimationFrame(() => {
+                    card.style.transition = 'transform 0.2s, opacity 0.2s';
+                    card.style.transform = 'translateX(0)';
+                    card.style.opacity = '1';
+                });
+            }, 200);
+        } else if (deltaX > threshold && AppState.currentIndex > 0) {
+            // 오른쪽 스와이프 → 이전
+            card.style.transition = 'transform 0.2s, opacity 0.2s';
+            card.style.transform = 'translateX(100%)';
+            card.style.opacity = '0';
+            setTimeout(() => {
+                AppState.currentIndex--;
+                updateCard();
+                card.style.transition = 'none';
+                card.style.transform = 'translateX(-100%)';
+                requestAnimationFrame(() => {
+                    card.style.transition = 'transform 0.2s, opacity 0.2s';
+                    card.style.transform = 'translateX(0)';
+                    card.style.opacity = '1';
+                });
+            }, 200);
+        } else {
+            // 스냅백
+            card.style.transition = 'transform 0.2s, opacity 0.2s';
+            card.style.transform = 'translateX(0)';
+            card.style.opacity = '1';
+        }
+
+        isSwiping = false;
+        directionLocked = false;
+    });
+})();
+
 // 세트 학습 완료 체크
 function checkCompletion() {
     const set = AppState.currentSet;
