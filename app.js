@@ -238,8 +238,8 @@ function renderSets(sets) {
         </div>
     `).join('');
 
-    // 초기 높이 조절 (단어, 뜻 모두 대상)
-    container.querySelectorAll('.word-edit-word, .word-edit-meaning').forEach(autoResizeTextarea);
+    // 초기 높이 조절 (뜻 textarea만 대상)
+    container.querySelectorAll('.word-edit-meaning').forEach(autoResizeTextarea);
 }
 
 function renderWordEditItem(setIdx, wIdx, w) {
@@ -248,7 +248,7 @@ function renderWordEditItem(setIdx, wIdx, w) {
     return `
         <div class="word-edit-item" data-set="${setIdx}" data-word="${wIdx}">
             <div class="word-edit-fields">
-                <textarea class="word-edit-word" rows="1" placeholder="단어" oninput="autoResizeTextarea(this)">${escapedWord}</textarea>
+                <input type="text" class="word-edit-word" value="${escapedWord}" placeholder="단어">
                 <textarea class="word-edit-meaning" rows="1" placeholder="뜻" oninput="autoResizeTextarea(this)">${meaningDisplay}</textarea>
             </div>
             <button class="btn-delete-word" onclick="deleteWordItem(this)" title="삭제">✕</button>
