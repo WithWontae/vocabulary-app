@@ -349,6 +349,10 @@ h1 {
     border-radius: 8px;
     font-size: 16px;
     font-weight: 600;
+    line-height: 1.5;
+    resize: none;
+    font-family: inherit;
+    color: var(--text-color);
     background: #fdfdfd;
 }
 
