@@ -63,8 +63,11 @@
             </div>
 
             <div id="ocrResult" style="display: none;">
-                <h3>추출된 세트</h3>
-                <p style="color: #666; font-size: 14px;">각 세트를 확인하고 저장하세요</p>
+                <div class="result-header">
+                    <h3>추출된 세트</h3>
+                    <button class="btn btn-primary" onclick="saveAllSets()">✨ 모든 세트 저장하기</button>
+                </div>
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">각 세트를 확인하고 한 번에 저장하세요</p>
                 <div id="setsContainer"></div>
             </div>
         </div>

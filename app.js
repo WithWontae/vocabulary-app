@@ -278,17 +278,58 @@ function deleteWordItem(btn) {
         card.querySelector('.set-name-input').value.trim() + ` (${count}개)`;
 }
 
-// 세트 저장 → 학습 시작
+// 모든 세트 일괄 저장
+function saveAllSets() {
+    const cards = document.querySelectorAll('.word-set-card');
+    let totalSaved = 0;
+
+    cards.forEach(card => {
+        const nameInput = card.querySelector('.set-name-input');
+        const name = nameInput.value.trim();
+        if (!name) return;
+
+        const items = card.querySelectorAll('.word-edit-item');
+        const words = [];
+        items.forEach(item => {
+            const word = item.querySelector('.word-edit-word').value.trim();
+            const meaning = item.querySelector('.word-edit-meaning').value.trim();
+            if (word) {
+                words.push({ word, meaning, known: false });
+            }
+        });
+
+        if (words.length > 0) {
+            AppState.wordSets.push({
+                name: name,
+                words: words,
+                createdAt: Date.now()
+            });
+            totalSaved++;
+        }
+    });
+
+    if (totalSaved > 0) {
+        saveData();
+        alert(`${totalSaved}개 세트가 저장되었습니다.`);
+        resetOCR();
+        showScreen('menuScreen');
+        renderSetsList();
+    } else {
+        alert('저장할 단어가 없습니다.');
+    }
+}
+
+// 개별 세트 저장 → 학습 시작
 function saveSet(setIdx) {
     const card = document.querySelector(`.word-set-card[data-set-index="${setIdx}"]`);
-    const name = card.querySelector('.set-name-input').value.trim();
+    const nameInput = card.querySelector('.set-name-input');
+    const name = nameInput.value.trim();
 
     if (!name) {
         alert('세트 이름을 입력하세요');
         return;
     }
 
-    // DOM에서 현재 입력값 수집
     const items = card.querySelectorAll('.word-edit-item');
     const words = [];
     items.forEach(item => {
@@ -312,12 +353,13 @@ function saveSet(setIdx) {
     });
 
     saveData();
+    alert('세트가 저장되었습니다.');
 
-    // 저장된 카드 비활성화
-    card.style.opacity = '0.5';
-    card.style.pointerEvents = 'none';
+    resetOCR();
+    showScreen('menuScreen');
+    renderSetsList();
 
-    // 바로 학습 시작
+    // 개별 저장의 경우 바로 학습 화면으로
     startStudy(newSetIndex);
 }
 

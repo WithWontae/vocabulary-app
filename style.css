@@ -249,6 +249,17 @@ h1 {
     }
 }
 
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.result-header h3 {
+    margin-bottom: 0;
+}
+
 /* 세트 카드 */
 .word-set-card {
     background: white;
