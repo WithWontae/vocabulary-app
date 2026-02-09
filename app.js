@@ -59,16 +59,9 @@ function renderSetsList() {
     }).join('');
 }
 
-// 메인 화면 버튼 — 갤러리
+// 메인 화면 버튼
 document.getElementById('addSetBtn').addEventListener('click', () => {
     showScreen('ocrScreen');
-    document.getElementById('galleryInput').click();
-});
-
-// 메인 화면 버튼 — 카메라
-document.getElementById('addSetCameraBtn').addEventListener('click', () => {
-    showScreen('ocrScreen');
-    document.getElementById('cameraInput').click();
 });
 
 // OCR 화면
