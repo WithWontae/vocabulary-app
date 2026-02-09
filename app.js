@@ -3,30 +3,50 @@ const AppState = {
     wordSets: [],
     currentSet: null,
     currentSetIndex: null,
-    currentIndex: 0
+    currentIndex: 0,
+    isInitialLoaded: false // 데이터 로드 여부를 확인하는 플래그
 };
 
-// 초기화
-document.addEventListener('DOMContentLoaded', () => {
+// 초기화 로직
+function initApp() {
+    if (AppState.isInitialLoaded) return;
     loadData();
     showScreen('menuScreen');
     renderSetsList();
-});
+    console.log('App Initialized');
+}
+
+// 스크립트가 늦게 로드될 경우를 위한 처리
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initApp();
+} else {
+    document.addEventListener('DOMContentLoaded', initApp);
+}
 
 // 데이터 로드/저장
 function loadData() {
     try {
         const saved = localStorage.getItem('vocabularyAppData');
         if (saved) {
-            AppState.wordSets = JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                AppState.wordSets = parsed;
+            }
         }
+        AppState.isInitialLoaded = true;
     } catch (err) {
         console.error('데이터 로드 오류:', err);
         AppState.wordSets = [];
+        AppState.isInitialLoaded = true;
     }
 }
 
 function saveData() {
+    // 로드되지 않은 상태에서 빈 배열로 덮어쓰는 것 방지
+    if (!AppState.isInitialLoaded) {
+        console.warn('데이터가 로드되지 않은 상태에서는 저장할 수 없습니다.');
+        return;
+    }
     localStorage.setItem('vocabularyAppData', JSON.stringify(AppState.wordSets));
 }
 
