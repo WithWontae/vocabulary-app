@@ -17,7 +17,10 @@
             <h1>📚 국어 단어암기</h1>
             
             <button class="btn btn-primary btn-large" id="addSetBtn">
-                📷 사진으로 단어 추가
+                🖼️ 갤러리에서 단어 추가
+            </button>
+            <button class="btn btn-primary btn-large" id="addSetCameraBtn" style="margin-top:-15px;">
+                📷 카메라로 단어 추가
             </button>
 
             <div class="btn-row">
@@ -42,9 +45,13 @@
             </div>
 
             <div class="upload-section">
-                <input type="file" id="imageInput" accept="image/*" capture="environment" style="display: none;">
-                <button class="btn btn-primary" id="uploadBtn">
-                    📷 사진 촬영/선택
+                <input type="file" id="galleryInput" accept="image/*" style="display: none;">
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+                <button class="btn btn-primary" id="galleryBtn" style="margin-bottom:10px;">
+                    🖼️ 갤러리에서 선택
+                </button>
+                <button class="btn btn-primary" id="cameraBtn">
+                    📷 카메라로 촬영
                 </button>
             </div>
 

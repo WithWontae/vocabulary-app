@@ -59,9 +59,16 @@ function renderSetsList() {
     }).join('');
 }
 
-// 메인 화면 버튼
+// 메인 화면 버튼 — 갤러리
 document.getElementById('addSetBtn').addEventListener('click', () => {
     showScreen('ocrScreen');
+    document.getElementById('galleryInput').click();
+});
+
+// 메인 화면 버튼 — 카메라
+document.getElementById('addSetCameraBtn').addEventListener('click', () => {
+    showScreen('ocrScreen');
+    document.getElementById('cameraInput').click();
 });
 
 // OCR 화면
@@ -69,14 +76,23 @@ document.getElementById('ocrBackBtn').addEventListener('click', () => {
     showScreen('menuScreen');
 });
 
-document.getElementById('uploadBtn').addEventListener('click', () => {
-    document.getElementById('imageInput').click();
+document.getElementById('galleryBtn').addEventListener('click', () => {
+    document.getElementById('galleryInput').click();
 });
 
-document.getElementById('imageInput').addEventListener('change', async (e) => {
+document.getElementById('cameraBtn').addEventListener('click', () => {
+    document.getElementById('cameraInput').click();
+});
+
+document.getElementById('galleryInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    await processOCR(file);
+});
 
+document.getElementById('cameraInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     await processOCR(file);
 });
 
@@ -187,63 +203,98 @@ function groupByNumber(words) {
     }));
 }
 
-// 세트 렌더링
+// 세트 렌더링 — 편집 가능한 단어 리스트
 function renderSets(sets) {
     const container = document.getElementById('setsContainer');
 
-    container.innerHTML = sets.map((set, index) => `
-        <div class="word-set-card">
+    container.innerHTML = sets.map((set, setIdx) => `
+        <div class="word-set-card" data-set-index="${setIdx}">
             <div class="word-set-header">
                 <h4>${set.name} (${set.words.length}개)</h4>
             </div>
-            <input type="text" 
-                   class="set-name-input" 
-                   value="${set.name}" 
-                   data-index="${index}"
+            <input type="text"
+                   class="set-name-input"
+                   value="${set.name}"
+                   data-index="${setIdx}"
                    placeholder="세트 이름">
-            <div class="word-preview">
-                ${set.words.slice(0, 5).map(w => `
-                    <div class="word-preview-item">
-                        <span class="word-preview-word">${w.word}</span>
-                        <span class="word-preview-meaning">${w.meaning.split('\n')[0]}</span>
-                    </div>
-                `).join('')}
-                ${set.words.length > 5 ? `<div style="text-align:center;color:#999;padding:10px;">...외 ${set.words.length - 5}개</div>` : ''}
+            <div class="word-edit-list" data-set="${setIdx}">
+                ${set.words.map((w, wIdx) => renderWordEditItem(setIdx, wIdx, w)).join('')}
             </div>
             <div class="btn-group">
-                <button class="btn btn-primary" onclick="saveSet(${index}, ${JSON.stringify(set.words).replace(/"/g, '&quot;')})">
-                    💾 저장
+                <button class="btn btn-primary" onclick="saveSet(${setIdx})">
+                    💾 저장하고 학습 시작
                 </button>
             </div>
         </div>
     `).join('');
 }
 
-// 세트 저장
-function saveSet(index, words) {
-    const input = document.querySelector(`.set-name-input[data-index="${index}"]`);
-    const name = input.value.trim();
+function renderWordEditItem(setIdx, wIdx, w) {
+    const escapedWord = (w.word || '').replace(/"/g, '&quot;');
+    const meaningDisplay = (w.meaning || '').replace(/\\n/g, '\n').replace(/"/g, '&quot;');
+    return `
+        <div class="word-edit-item" data-set="${setIdx}" data-word="${wIdx}">
+            <div class="word-edit-fields">
+                <input type="text" class="word-edit-word" value="${escapedWord}" placeholder="단어">
+                <textarea class="word-edit-meaning" rows="2" placeholder="뜻">${meaningDisplay}</textarea>
+            </div>
+            <button class="btn-delete-word" onclick="deleteWordItem(this)" title="삭제">✕</button>
+        </div>
+    `;
+}
+
+function deleteWordItem(btn) {
+    const item = btn.closest('.word-edit-item');
+    const list = item.closest('.word-edit-list');
+    item.remove();
+    // 헤더 카운트 업데이트
+    const card = list.closest('.word-set-card');
+    const count = list.querySelectorAll('.word-edit-item').length;
+    card.querySelector('.word-set-header h4').textContent =
+        card.querySelector('.set-name-input').value.trim() + ` (${count}개)`;
+}
+
+// 세트 저장 → 학습 시작
+function saveSet(setIdx) {
+    const card = document.querySelector(`.word-set-card[data-set-index="${setIdx}"]`);
+    const name = card.querySelector('.set-name-input').value.trim();
 
     if (!name) {
         alert('세트 이름을 입력하세요');
         return;
     }
 
+    // DOM에서 현재 입력값 수집
+    const items = card.querySelectorAll('.word-edit-item');
+    const words = [];
+    items.forEach(item => {
+        const word = item.querySelector('.word-edit-word').value.trim();
+        const meaning = item.querySelector('.word-edit-meaning').value.trim();
+        if (word) {
+            words.push({ word, meaning, known: false });
+        }
+    });
+
+    if (words.length === 0) {
+        alert('저장할 단어가 없습니다');
+        return;
+    }
+
+    const newSetIndex = AppState.wordSets.length;
     AppState.wordSets.push({
         name: name,
-        words: words.map(w => ({
-            word: w.word,
-            meaning: w.meaning,
-            known: false
-        })),
+        words: words,
         createdAt: Date.now()
     });
 
     saveData();
-    alert(`"${name}" 세트 저장 완료!`);
 
-    input.closest('.word-set-card').style.opacity = '0.5';
-    input.closest('.word-set-card').style.pointerEvents = 'none';
+    // 저장된 카드 비활성화
+    card.style.opacity = '0.5';
+    card.style.pointerEvents = 'none';
+
+    // 바로 학습 시작
+    startStudy(newSetIndex);
 }
 
 // 학습 시작
