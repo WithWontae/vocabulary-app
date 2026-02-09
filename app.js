@@ -54,6 +54,11 @@ function renderSetsList() {
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: ${progress}%"></div>
                 </div>
+                <div class="set-card-actions">
+                    <button class="btn-action" onclick="exportSet(event, ${index})">📤 내보내기</button>
+                    <button class="btn-action" onclick="triggerSetImport(event, ${index})">📥 가져오기</button>
+                    <button class="btn-action btn-danger" onclick="deleteSet(event, ${index})">🗑️ 삭제</button>
+                </div>
             </div>
         `;
     }).join('');
@@ -220,6 +225,9 @@ function renderSets(sets) {
             </div>
         </div>
     `).join('');
+
+    // 초기 높이 조절
+    container.querySelectorAll('.word-edit-meaning').forEach(autoResizeTextarea);
 }
 
 function renderWordEditItem(setIdx, wIdx, w) {
@@ -229,11 +237,16 @@ function renderWordEditItem(setIdx, wIdx, w) {
         <div class="word-edit-item" data-set="${setIdx}" data-word="${wIdx}">
             <div class="word-edit-fields">
                 <input type="text" class="word-edit-word" value="${escapedWord}" placeholder="단어">
-                <textarea class="word-edit-meaning" rows="2" placeholder="뜻">${meaningDisplay}</textarea>
+                <textarea class="word-edit-meaning" rows="1" placeholder="뜻" oninput="autoResizeTextarea(this)">${meaningDisplay}</textarea>
             </div>
             <button class="btn-delete-word" onclick="deleteWordItem(this)" title="삭제">✕</button>
         </div>
     `;
+}
+
+function autoResizeTextarea(element) {
+    element.style.height = 'auto';
+    element.style.height = element.scrollHeight + 'px';
 }
 
 function deleteWordItem(btn) {
@@ -429,7 +442,7 @@ function updateCard() {
     let isSwiping = false;
     let directionLocked = false; // 방향 잠금 (수직/수평 판별 후)
 
-    card.addEventListener('touchstart', function(e) {
+    card.addEventListener('touchstart', function (e) {
         // 커버/뜻 영역은 수직 드래그 전용 → 스와이프 무시
         if (e.target.closest('.card-meaning-area')) return;
         startX = e.touches[0].clientX;
@@ -439,7 +452,7 @@ function updateCard() {
         directionLocked = false;
     }, { passive: true });
 
-    card.addEventListener('touchmove', function(e) {
+    card.addEventListener('touchmove', function (e) {
         if (e.target.closest('.card-meaning-area')) return;
         const currentX = e.touches[0].clientX;
         const currentY = e.touches[0].clientY;
@@ -460,7 +473,7 @@ function updateCard() {
         card.style.opacity = Math.max(0.5, 1 - Math.abs(deltaX) / 500);
     }, { passive: false });
 
-    card.addEventListener('touchend', function() {
+    card.addEventListener('touchend', function () {
         if (!isSwiping) return;
         const threshold = card.offsetWidth * 0.25;
         const words = AppState.currentSet.words;
@@ -623,8 +636,43 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     URL.revokeObjectURL(url);
 });
 
+let importTargetSetIndex = null;
+
+// 세트 삭제
+function deleteSet(event, index) {
+    event.stopPropagation();
+    if (confirm(`"${AppState.wordSets[index].name}" 세트를 삭제하시겠습니까?`)) {
+        AppState.wordSets.splice(index, 1);
+        saveData();
+        renderSetsList();
+    }
+}
+
+// 개별 세트 내보내기
+function exportSet(event, index) {
+    event.stopPropagation();
+    const set = AppState.wordSets[index];
+    const json = JSON.stringify([set], null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const date = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vocabulary-set-${set.name}-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// 개별 세트 가져오기 트리거
+function triggerSetImport(event, index) {
+    event.stopPropagation();
+    importTargetSetIndex = index;
+    document.getElementById('importInput').click();
+}
+
 // 가져오기
 document.getElementById('importBtn').addEventListener('click', () => {
+    importTargetSetIndex = null;
     document.getElementById('importInput').click();
 });
 
@@ -638,15 +686,12 @@ document.getElementById('importInput').addEventListener('change', (e) => {
             const text = reader.result.trim();
             let data;
 
-            // JSON 파싱 시도
             try {
                 data = JSON.parse(text);
             } catch {
-                // BOM 제거 후 재시도
                 data = JSON.parse(text.replace(/^\uFEFF/, ''));
             }
 
-            // 단일 객체인 경우 배열로 변환
             if (!Array.isArray(data)) {
                 if (data && data.name && Array.isArray(data.words)) {
                     data = [data];
@@ -664,21 +709,35 @@ document.getElementById('importInput').addEventListener('change', (e) => {
                 return;
             }
 
-            validSets.forEach(set => {
-                AppState.wordSets.push({
-                    name: set.name,
-                    words: set.words.map(w => ({
-                        word: w.word || '',
-                        meaning: w.meaning || '',
-                        known: w.known || false
-                    })),
-                    createdAt: set.createdAt || Date.now()
+            if (importTargetSetIndex !== null) {
+                // 특정 세트 교체
+                const newWords = validSets[0].words.map(w => ({
+                    word: w.word || '',
+                    meaning: w.meaning || '',
+                    known: w.known || false
+                }));
+                AppState.wordSets[importTargetSetIndex].words = newWords;
+                AppState.wordSets[importTargetSetIndex].name = validSets[0].name;
+                saveData();
+                renderSetsList();
+                alert(`"${validSets[0].name}" 세트 내용이 업데이트되었습니다`);
+            } else {
+                // 전체 추가
+                validSets.forEach(set => {
+                    AppState.wordSets.push({
+                        name: set.name,
+                        words: set.words.map(w => ({
+                            word: w.word || '',
+                            meaning: w.meaning || '',
+                            known: w.known || false
+                        })),
+                        createdAt: set.createdAt || Date.now()
+                    });
                 });
-            });
-
-            saveData();
-            renderSetsList();
-            alert(`${validSets.length}개 세트를 가져왔습니다`);
+                saveData();
+                renderSetsList();
+                alert(`${validSets.length}개 세트를 가져왔습니다`);
+            }
         } catch (err) {
             alert('파일을 읽을 수 없습니다: ' + err.message);
         }
