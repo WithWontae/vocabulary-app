@@ -71,6 +71,7 @@ document.getElementById('addSetBtn').addEventListener('click', () => {
 
 // OCR 화면
 document.getElementById('ocrBackBtn').addEventListener('click', () => {
+    resetOCR();
     showScreen('menuScreen');
 });
 
@@ -96,6 +97,7 @@ document.getElementById('cameraInput').addEventListener('change', async (e) => {
 
 // OCR 처리
 async function processOCR(file) {
+    resetOCR(); // 시작 전 초기화
     const progressDiv = document.getElementById('ocrProgress');
     const resultDiv = document.getElementById('ocrResult');
     const progressText = document.getElementById('progressText');
@@ -753,3 +755,14 @@ document.getElementById('importInput').addEventListener('change', (e) => {
     reader.readAsText(file, 'UTF-8');
     e.target.value = '';
 });
+
+// OCR 화면 초기화
+function resetOCR() {
+    document.getElementById('galleryInput').value = '';
+    document.getElementById('cameraInput').value = '';
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+    document.getElementById('imagePreviewContainer').innerHTML = '';
+    document.getElementById('ocrProgress').style.display = 'none';
+    document.getElementById('ocrResult').style.display = 'none';
+    document.getElementById('setsContainer').innerHTML = '';
+}
