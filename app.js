@@ -2,8 +2,8 @@
 const AppState = {
     wordSets: [],
     currentSet: null,
-    currentIndex: 0,
-    isFlipped: false
+    currentSetIndex: null,
+    currentIndex: 0
 };
 
 // 초기화
@@ -249,9 +249,10 @@ function saveSet(index, words) {
 // 학습 시작
 function startStudy(setIndex) {
     AppState.currentSet = AppState.wordSets[setIndex];
+    AppState.currentSetIndex = setIndex;
     AppState.currentIndex = 0;
-    AppState.isFlipped = false;
-    
+
+    document.getElementById('completionOverlay').style.display = 'none';
     showScreen('studyScreen');
     updateCard();
     renderMenu();
@@ -261,45 +262,146 @@ function startStudy(setIndex) {
 function updateCard() {
     const set = AppState.currentSet;
     const word = set.words[AppState.currentIndex];
-    
-    document.getElementById('progressText').textContent = `${AppState.currentIndex + 1}/${set.words.length}`;
+
+    document.getElementById('studyProgressText').textContent = `${AppState.currentIndex + 1}/${set.words.length}`;
     document.getElementById('knownCount').textContent = set.words.filter(w => w.known).length;
     document.getElementById('totalCount').textContent = set.words.length;
     document.getElementById('setName').textContent = set.name;
-    
+
     document.getElementById('cardWord').textContent = word.word;
     document.getElementById('cardMeaning').textContent = word.meaning;
-    
-    // 체크 마크
-    const cardWord = document.getElementById('cardWord');
-    const existing = cardWord.querySelector('.check-mark');
-    if (existing) existing.remove();
-    
+
+    // 커버 & 상태 버튼 초기화
+    const cover = document.getElementById('meaningCover');
+    const statusBtn = document.getElementById('statusBtn');
+    const coverHeight = cover.parentElement.offsetHeight;
+
     if (word.known) {
-        const check = document.createElement('div');
-        check.className = 'check-mark';
-        check.textContent = '✓';
-        cardWord.appendChild(check);
+        cover.style.transform = `translateY(${coverHeight}px)`;
+        statusBtn.className = 'btn-status known';
+        statusBtn.textContent = '아는 단어';
+    } else {
+        cover.style.transform = 'translateY(0)';
+        statusBtn.className = 'btn-status learning';
+        statusBtn.textContent = '학습중';
     }
-    
-    // 카드 뒤집기 초기화
-    document.getElementById('flashCard').classList.remove('flipped');
-    AppState.isFlipped = false;
 }
 
-// 카드 뒤집기
-document.getElementById('flashCard').addEventListener('click', () => {
-    document.getElementById('flashCard').classList.toggle('flipped');
-    AppState.isFlipped = !AppState.isFlipped;
+// 드래그로 뜻 커버 열기/닫기
+(function initCoverDrag() {
+    const cover = document.getElementById('meaningCover');
+    let startY = 0;
+    let currentY = 0;
+    let coverHeight = 0;
+    let isDragging = false;
+
+    function onStart(e) {
+        isDragging = true;
+        cover.classList.add('dragging');
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+        coverHeight = cover.parentElement.offsetHeight;
+        // 현재 transform 값 읽기
+        const transform = window.getComputedStyle(cover).transform;
+        if (transform && transform !== 'none') {
+            const matrix = new DOMMatrix(transform);
+            currentY = matrix.m42;
+        } else {
+            currentY = 0;
+        }
+    }
+
+    function onMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const deltaY = clientY - startY;
+        let newY = currentY + deltaY;
+        newY = Math.max(0, Math.min(newY, coverHeight));
+        cover.style.transform = `translateY(${newY}px)`;
+    }
+
+    function onEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        cover.classList.remove('dragging');
+
+        const transform = window.getComputedStyle(cover).transform;
+        let finalY = 0;
+        if (transform && transform !== 'none') {
+            finalY = new DOMMatrix(transform).m42;
+        }
+
+        coverHeight = cover.parentElement.offsetHeight;
+        const word = AppState.currentSet.words[AppState.currentIndex];
+        const statusBtn = document.getElementById('statusBtn');
+
+        if (finalY > coverHeight * 0.3) {
+            // 열림 → 아는 단어
+            cover.style.transform = `translateY(${coverHeight}px)`;
+            word.known = true;
+            statusBtn.className = 'btn-status known';
+            statusBtn.textContent = '아는 단어';
+        } else {
+            // 닫힘 → 학습중
+            cover.style.transform = 'translateY(0)';
+            word.known = false;
+            statusBtn.className = 'btn-status learning';
+            statusBtn.textContent = '학습중';
+        }
+
+        saveData();
+        document.getElementById('knownCount').textContent = AppState.currentSet.words.filter(w => w.known).length;
+
+        // 모든 단어 학습 완료 체크
+        checkCompletion();
+    }
+
+    cover.addEventListener('touchstart', onStart, { passive: true });
+    cover.addEventListener('touchmove', onMove, { passive: false });
+    cover.addEventListener('touchend', onEnd);
+    cover.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+})();
+
+// 세트 학습 완료 체크
+function checkCompletion() {
+    const set = AppState.currentSet;
+    if (set.words.every(w => w.known)) {
+        const overlay = document.getElementById('completionOverlay');
+        document.getElementById('completionMessage').textContent =
+            `강민 ~~ ${set.name} 세트 단어 학습 완료! 축하!`;
+        overlay.style.display = 'flex';
+    }
+}
+
+// 완료 화면 버튼
+document.getElementById('nextSetBtn').addEventListener('click', () => {
+    // 다음 미완료 세트 찾기
+    const sets = AppState.wordSets;
+    let nextIndex = null;
+    for (let i = 1; i <= sets.length; i++) {
+        const idx = (AppState.currentSetIndex + i) % sets.length;
+        if (!sets[idx].words.every(w => w.known)) {
+            nextIndex = idx;
+            break;
+        }
+    }
+
+    if (nextIndex !== null) {
+        startStudy(nextIndex);
+    } else {
+        // 모든 세트 완료
+        document.getElementById('completionOverlay').style.display = 'none';
+        showScreen('menuScreen');
+        renderSetsList();
+    }
 });
 
-// 아는 카드
-document.getElementById('knowBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    const word = AppState.currentSet.words[AppState.currentIndex];
-    word.known = !word.known;
-    saveData();
-    updateCard();
+document.getElementById('backToMenuBtn').addEventListener('click', () => {
+    document.getElementById('completionOverlay').style.display = 'none';
+    showScreen('menuScreen');
+    renderSetsList();
 });
 
 // 이전/다음
@@ -357,3 +459,68 @@ function switchSet(index) {
     closeMenu();
     startStudy(index);
 }
+
+// 내보내기
+document.getElementById('exportBtn').addEventListener('click', () => {
+    if (AppState.wordSets.length === 0) {
+        alert('내보낼 세트가 없습니다');
+        return;
+    }
+
+    const json = JSON.stringify(AppState.wordSets, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const date = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vocabulary-sets-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+// 가져오기
+document.getElementById('importBtn').addEventListener('click', () => {
+    document.getElementById('importInput').click();
+});
+
+document.getElementById('importInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const data = JSON.parse(reader.result);
+            if (!Array.isArray(data)) throw new Error('배열이 아님');
+
+            const validSets = data.filter(set =>
+                set && set.name && Array.isArray(set.words) && set.words.length > 0
+            );
+
+            if (validSets.length === 0) {
+                alert('유효한 세트가 없습니다');
+                return;
+            }
+
+            validSets.forEach(set => {
+                AppState.wordSets.push({
+                    name: set.name,
+                    words: set.words.map(w => ({
+                        word: w.word || '',
+                        meaning: w.meaning || '',
+                        known: w.known || false
+                    })),
+                    createdAt: set.createdAt || Date.now()
+                });
+            });
+
+            saveData();
+            renderSetsList();
+            alert(`${validSets.length}개 세트를 가져왔습니다`);
+        } catch (err) {
+            alert('파일을 읽을 수 없습니다: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+});

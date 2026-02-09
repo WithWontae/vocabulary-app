@@ -19,6 +19,12 @@
                 📷 사진으로 단어 추가
             </button>
 
+            <div class="btn-row">
+                <button class="btn btn-secondary btn-half" id="exportBtn">📤 내보내기</button>
+                <button class="btn btn-secondary btn-half" id="importBtn">📥 가져오기</button>
+                <input type="file" id="importInput" accept=".json" style="display: none;">
+            </div>
+
             <div id="setsList" class="sets-list">
                 <!-- 세트 목록 동적 생성 -->
             </div>
@@ -60,7 +66,7 @@
             <button class="btn-back" id="studyBackBtn">← 뒤로</button>
             <div class="study-progress">
                 <button class="btn-nav" id="prevBtn">‹</button>
-                <span id="progressText">1/10</span>
+                <span id="studyProgressText">1/10</span>
                 <button class="btn-nav" id="nextBtn">›</button>
             </div>
             <button class="btn-menu" id="menuBtn">☰</button>
@@ -75,15 +81,18 @@
         <div class="study-container">
             <div class="card-wrapper">
                 <div class="card" id="flashCard">
-                    <div class="card-front">
-                        <div class="card-header">
-                            <div></div>
-                            <button class="btn-know" id="knowBtn">아는카드</button>
-                        </div>
-                        <div class="card-content" id="cardWord"></div>
+                    <div class="card-header">
+                        <div></div>
+                        <button class="btn-status learning" id="statusBtn">학습중</button>
                     </div>
-                    <div class="card-back">
-                        <div class="card-content" id="cardMeaning"></div>
+                    <div class="card-word" id="cardWord"></div>
+                    <div class="card-meaning-area">
+                        <div class="card-meaning-text" id="cardMeaning"></div>
+                        <div class="meaning-cover" id="meaningCover">
+                            <div class="cover-handle" id="coverHandle">
+                                <div class="handle-bar"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -91,6 +100,16 @@
             <div class="study-footer">
                 <div id="setName"></div>
                 <div class="footer-motto">강민 할 수 있다!!!</div>
+            </div>
+        </div>
+
+        <!-- 세트 학습 완료 오버레이 -->
+        <div id="completionOverlay" class="completion-overlay" style="display:none;">
+            <div class="completion-card">
+                <div class="completion-emoji">🎉</div>
+                <div class="completion-message" id="completionMessage"></div>
+                <button class="btn btn-primary btn-large" id="nextSetBtn">다음 세트 학습</button>
+                <button class="btn btn-secondary btn-large" id="backToMenuBtn" style="margin-top:10px;">메인으로 돌아가기</button>
             </div>
         </div>
 
