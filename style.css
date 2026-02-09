@@ -367,18 +367,37 @@ h1 {
     overflow: hidden;
 }
 
+.study-info {
+    text-align: center;
+    padding: 12px 20px 0;
+    flex-shrink: 0;
+}
+
+.study-info #setName {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-color);
+}
+
+.study-motto {
+    color: var(--text-light);
+    font-size: 13px;
+    margin-top: 2px;
+}
+
 .card-wrapper {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 15px 20px 20px;
+    min-height: 0;
 }
 
 .card {
     width: 100%;
     max-width: 500px;
-    height: 500px;
+    height: 100%;
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     background: white;
@@ -450,6 +469,8 @@ h1 {
     align-items: center;
     justify-content: center;
     text-align: center;
+    touch-action: none;
+    user-select: none;
 }
 
 .meaning-cover {
@@ -522,19 +543,6 @@ h1 {
     line-height: 1.5;
     margin-bottom: 30px;
     color: var(--text-color);
-}
-
-.study-footer {
-    background: white;
-    padding: 15px 20px;
-    text-align: center;
-    border-top: 1px solid var(--border-color);
-}
-
-.footer-motto {
-    color: var(--text-light);
-    font-size: 14px;
-    margin-top: 5px;
 }
 
 /* 사이드 메뉴 */
@@ -616,10 +624,6 @@ h1 {
 }
 
 @media (max-width: 480px) {
-    .card {
-        height: 400px;
-    }
-
     .card-word {
         font-size: 42px;
     }

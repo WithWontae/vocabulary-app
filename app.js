@@ -340,24 +340,31 @@ function updateCard() {
 // 드래그로 뜻 커버 열기/닫기
 (function initCoverDrag() {
     const cover = document.getElementById('meaningCover');
+    const meaningArea = document.getElementById('cardMeaning');
     let startY = 0;
     let currentY = 0;
     let coverHeight = 0;
     let isDragging = false;
+    let isOpen = false; // 커버가 열려있는지
 
     function onStart(e) {
         isDragging = true;
         cover.classList.add('dragging');
         startY = e.touches ? e.touches[0].clientY : e.clientY;
         coverHeight = cover.parentElement.offsetHeight;
-        // 현재 transform 값 읽기
-        const transform = window.getComputedStyle(cover).transform;
-        if (transform && transform !== 'none') {
-            const matrix = new DOMMatrix(transform);
-            currentY = matrix.m42;
-        } else {
-            currentY = 0;
-        }
+        isOpen = AppState.currentSet.words[AppState.currentIndex].known;
+        currentY = isOpen ? coverHeight : 0;
+    }
+
+    function onMeaningStart(e) {
+        // 뜻 영역(커버 열린 상태)에서 드래그 시작 → 커버 닫기용
+        if (!AppState.currentSet.words[AppState.currentIndex].known) return;
+        isDragging = true;
+        cover.classList.add('dragging');
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+        coverHeight = cover.parentElement.offsetHeight;
+        isOpen = true;
+        currentY = coverHeight;
     }
 
     function onMove(e) {
@@ -386,13 +393,13 @@ function updateCard() {
         const statusBtn = document.getElementById('statusBtn');
 
         if (finalY > coverHeight * 0.3) {
-            // 열림 (아래로 드래그) → 아는 단어
+            // 열림 → 아는 단어
             cover.style.transform = 'translateY(100%)';
             word.known = true;
             statusBtn.className = 'btn-status known';
             statusBtn.textContent = '아는 단어';
         } else {
-            // 닫힘 (위로 드래그) → 학습중
+            // 닫힘 → 학습중 (known 해제)
             cover.style.transform = 'translateY(0)';
             word.known = false;
             statusBtn.className = 'btn-status learning';
@@ -401,15 +408,21 @@ function updateCard() {
 
         saveData();
         document.getElementById('knownCount').textContent = AppState.currentSet.words.filter(w => w.known).length;
-
-        // 모든 단어 학습 완료 체크
         checkCompletion();
     }
 
+    // 커버 위에서 드래그 (열기)
     cover.addEventListener('touchstart', onStart, { passive: true });
     cover.addEventListener('touchmove', onMove, { passive: false });
     cover.addEventListener('touchend', onEnd);
     cover.addEventListener('mousedown', onStart);
+
+    // 뜻 텍스트 영역에서 드래그 (닫기 → known 해제)
+    meaningArea.addEventListener('touchstart', onMeaningStart, { passive: true });
+    meaningArea.addEventListener('touchmove', onMove, { passive: false });
+    meaningArea.addEventListener('touchend', onEnd);
+    meaningArea.addEventListener('mousedown', onMeaningStart);
+
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
 })();
