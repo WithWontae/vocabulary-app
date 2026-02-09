@@ -34,17 +34,17 @@ function showScreen(screenId) {
 // 세트 목록 렌더링
 function renderSetsList() {
     const container = document.getElementById('setsList');
-    
+
     if (AppState.wordSets.length === 0) {
         container.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">아직 세트가 없습니다</p>';
         return;
     }
-    
+
     container.innerHTML = AppState.wordSets.map((set, index) => {
         const known = set.words.filter(w => w.known).length;
         const total = set.words.length;
         const progress = total > 0 ? (known / total * 100) : 0;
-        
+
         return `
             <div class="set-card" onclick="startStudy(${index})">
                 <div class="set-card-header">
@@ -76,7 +76,7 @@ document.getElementById('uploadBtn').addEventListener('click', () => {
 document.getElementById('imageInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     await processOCR(file);
 });
 
@@ -85,11 +85,11 @@ async function processOCR(file) {
     const progressDiv = document.getElementById('ocrProgress');
     const resultDiv = document.getElementById('ocrResult');
     const progressText = document.getElementById('progressText');
-    
+
     progressDiv.style.display = 'block';
     resultDiv.style.display = 'none';
     progressText.textContent = '단어를 추출하는 중...';
-    
+
     try {
         // HEIC → JPEG 변환
         let processedFile = file;
@@ -99,7 +99,7 @@ async function processOCR(file) {
             const maxSize = 2000;
             let width = img.width;
             let height = img.height;
-            
+
             if (width > maxSize || height > maxSize) {
                 if (width > height) {
                     height = (height / width) * maxSize;
@@ -109,16 +109,16 @@ async function processOCR(file) {
                     height = maxSize;
                 }
             }
-            
+
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
-            
+
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
             processedFile = new File([blob], 'image.jpg', { type: 'image/jpeg' });
         }
-        
+
         // Base64 변환
         const base64Data = await new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -145,18 +145,18 @@ async function processOCR(file) {
 
         const result = await response.json();
         const words = result.words || [];
-        
+
         progressDiv.style.display = 'none';
         resultDiv.style.display = 'block';
-        
+
         // 번호별로 그룹핑
         const grouped = groupByNumber(words);
         renderSets(grouped);
-        
+
         if (words.length === 0) {
             alert('단어를 찾지 못했습니다');
         }
-        
+
     } catch (error) {
         console.error('OCR 오류:', error);
         alert('텍스트 추출에 실패했습니다\n' + error.message);
@@ -167,7 +167,7 @@ async function processOCR(file) {
 // 번호별 그룹핑
 function groupByNumber(words) {
     const groups = {};
-    
+
     words.forEach(word => {
         const num = word.number || 'etc';
         if (!groups[num]) {
@@ -175,7 +175,7 @@ function groupByNumber(words) {
         }
         groups[num].push(word);
     });
-    
+
     return Object.keys(groups).sort((a, b) => {
         if (a === 'etc') return 1;
         if (b === 'etc') return -1;
@@ -190,7 +190,7 @@ function groupByNumber(words) {
 // 세트 렌더링
 function renderSets(sets) {
     const container = document.getElementById('setsContainer');
-    
+
     container.innerHTML = sets.map((set, index) => `
         <div class="word-set-card">
             <div class="word-set-header">
@@ -223,12 +223,12 @@ function renderSets(sets) {
 function saveSet(index, words) {
     const input = document.querySelector(`.set-name-input[data-index="${index}"]`);
     const name = input.value.trim();
-    
+
     if (!name) {
         alert('세트 이름을 입력하세요');
         return;
     }
-    
+
     AppState.wordSets.push({
         name: name,
         words: words.map(w => ({
@@ -238,10 +238,10 @@ function saveSet(index, words) {
         })),
         createdAt: Date.now()
     });
-    
+
     saveData();
     alert(`"${name}" 세트 저장 완료!`);
-    
+
     input.closest('.word-set-card').style.opacity = '0.5';
     input.closest('.word-set-card').style.pointerEvents = 'none';
 }
@@ -274,10 +274,9 @@ function updateCard() {
     // 커버 & 상태 버튼 초기화
     const cover = document.getElementById('meaningCover');
     const statusBtn = document.getElementById('statusBtn');
-    const coverHeight = cover.parentElement.offsetHeight;
 
     if (word.known) {
-        cover.style.transform = `translateY(${coverHeight}px)`;
+        cover.style.transform = 'translateY(100%)';
         statusBtn.className = 'btn-status known';
         statusBtn.textContent = '아는 단어';
     } else {
@@ -336,13 +335,13 @@ function updateCard() {
         const statusBtn = document.getElementById('statusBtn');
 
         if (finalY > coverHeight * 0.3) {
-            // 열림 → 아는 단어
-            cover.style.transform = `translateY(${coverHeight}px)`;
+            // 열림 (아래로 드래그) → 아는 단어
+            cover.style.transform = 'translateY(100%)';
             word.known = true;
             statusBtn.className = 'btn-status known';
             statusBtn.textContent = '아는 단어';
         } else {
-            // 닫힘 → 학습중
+            // 닫힘 (위로 드래그) → 학습중
             cover.style.transform = 'translateY(0)';
             word.known = false;
             statusBtn.className = 'btn-status learning';
@@ -441,11 +440,11 @@ function closeMenu() {
 
 function renderMenu() {
     const container = document.getElementById('menuContent');
-    
+
     container.innerHTML = AppState.wordSets.map((set, index) => {
         const known = set.words.filter(w => w.known).length;
         const active = set === AppState.currentSet ? 'active' : '';
-        
+
         return `
             <div class="menu-item ${active}" onclick="switchSet(${index})">
                 <div style="font-weight:600;margin-bottom:5px">${set.name}</div>
