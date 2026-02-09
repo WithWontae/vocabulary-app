@@ -146,9 +146,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('OCR 오류:', error);
-    return res.status(500).json({
-      error: 'OCR 처리 실패',
-      details: error.message
-    });
+    // 실패하더라도 빈 단어 배열을 반환하여 클라이언트에서 처리하게 함
+    return res.status(200).json({ words: [] });
   }
 }

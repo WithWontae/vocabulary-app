@@ -15,9 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 데이터 로드/저장
 function loadData() {
-    const saved = localStorage.getItem('vocabularyAppData');
-    if (saved) {
-        AppState.wordSets = JSON.parse(saved);
+    try {
+        const saved = localStorage.getItem('vocabularyAppData');
+        if (saved) {
+            AppState.wordSets = JSON.parse(saved);
+        }
+    } catch (err) {
+        console.error('데이터 로드 오류:', err);
+        AppState.wordSets = [];
     }
 }
 
@@ -175,7 +180,7 @@ async function processOCR(file) {
         renderSets(grouped);
 
         if (words.length === 0) {
-            alert('단어를 찾지 못했습니다');
+            alert('추출할 수 없는 사진입니다.');
         }
 
     } catch (error) {
