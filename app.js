@@ -96,6 +96,7 @@ document.getElementById('addSetBtn').addEventListener('click', () => {
 
 // OCR 화면
 document.getElementById('ocrBackBtn').addEventListener('click', () => {
+    console.log('OCR Back Clicked');
     resetOCR();
     showScreen('menuScreen');
 });
@@ -293,9 +294,10 @@ function deleteWordItem(btn) {
 }
 
 // 모든 세트 일괄 저장
-function saveAllSets() {
+function saveAllSets(autoStudy = false) {
     const cards = document.querySelectorAll('.word-set-card');
     let totalSaved = 0;
+    const startIndex = AppState.wordSets.length;
 
     cards.forEach(card => {
         const nameInput = card.querySelector('.set-name-input');
@@ -324,13 +326,22 @@ function saveAllSets() {
 
     if (totalSaved > 0) {
         saveData();
-        alert(`${totalSaved}개 세트가 저장되었습니다.`);
-        resetOCR();
-        showScreen('menuScreen');
-        renderSetsList();
+        if (autoStudy) {
+            startStudy(startIndex);
+        } else {
+            alert(`${totalSaved}개 세트가 저장되었습니다.`);
+            resetOCR();
+            showScreen('menuScreen');
+            renderSetsList();
+        }
     } else {
         alert('저장할 단어가 없습니다.');
     }
+}
+
+// 모든 세트 저장 후 첫 번째 세트 학습 시작
+function saveAllSetsAndStudy() {
+    saveAllSets(true);
 }
 
 // 개별 세트 저장 → 학습 시작
@@ -653,6 +664,7 @@ document.getElementById('nextBtn').addEventListener('click', () => {
 
 // 뒤로가기
 document.getElementById('studyBackBtn').addEventListener('click', () => {
+    console.log('Study Back Clicked');
     showScreen('menuScreen');
     renderSetsList();
 });
