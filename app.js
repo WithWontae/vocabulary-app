@@ -248,14 +248,8 @@ function renderWordEditItem(setIdx, wIdx, w) {
     return `
         <div class="word-edit-item" data-set="${setIdx}" data-word="${wIdx}">
             <div class="word-edit-fields">
-                <div class="edit-field-group">
-                    <label>단어</label>
-                    <input type="text" class="word-edit-word" value="${escapedWord}" placeholder="단어">
-                </div>
-                <div class="edit-field-group">
-                    <label>뜻</label>
-                    <textarea class="word-edit-meaning" rows="1" placeholder="뜻" oninput="autoResizeTextarea(this)">${meaningDisplay}</textarea>
-                </div>
+                <input type="text" class="word-edit-word" value="${escapedWord}" placeholder="단어">
+                <textarea class="word-edit-meaning" rows="1" placeholder="뜻" oninput="autoResizeTextarea(this)">${meaningDisplay}</textarea>
             </div>
             <button class="btn-delete-word" onclick="deleteWordItem(this)" title="삭제">✕</button>
         </div>
