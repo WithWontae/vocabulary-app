@@ -418,13 +418,13 @@ function updateCard() {
     }
 
     // 커버 위에서 드래그 (열기)
-    cover.addEventListener('touchstart', onStart, { passive: true });
+    cover.addEventListener('touchstart', onStart, { passive: false });
     cover.addEventListener('touchmove', onMove, { passive: false });
     cover.addEventListener('touchend', onEnd);
     cover.addEventListener('mousedown', onStart);
 
     // 뜻 텍스트 영역에서 드래그 (닫기 → known 해제)
-    meaningArea.addEventListener('touchstart', onMeaningStart, { passive: true });
+    meaningArea.addEventListener('touchstart', onMeaningStart, { passive: false });
     meaningArea.addEventListener('touchmove', onMove, { passive: false });
     meaningArea.addEventListener('touchend', onEnd);
     meaningArea.addEventListener('mousedown', onMeaningStart);

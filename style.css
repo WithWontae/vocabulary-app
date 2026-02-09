@@ -12,7 +12,14 @@
     --border-color: #ddd;
 }
 
+html,
 body {
+    overflow: hidden;
+    height: 100%;
+    position: fixed;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    touch-action: none;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: var(--bg-color);
     color: var(--text-color);
@@ -21,7 +28,11 @@ body {
 
 .screen {
     display: none;
-    min-height: 100vh;
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
 }
 
 .screen.active {
@@ -31,9 +42,9 @@ body {
 #studyScreen.active {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    min-height: 0;
+    height: 100%;
     overflow: hidden;
+    touch-action: none;
 }
 
 .container {
@@ -550,7 +561,7 @@ h1 {
     align-items: center;
     justify-content: center;
     text-align: center;
-    touch-action: none;
+    touch-action: pan-y;
     user-select: none;
 }
 
