@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -7,15 +8,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>국어 단어암기</title>
     <link rel="stylesheet" id="mainCss">
-    <script>document.getElementById('mainCss').href='style.css?v='+Date.now();</script>
+    <script>document.getElementById('mainCss').href = 'style.css?v=' + Date.now();</script>
     <link rel="manifest" href="manifest.json">
 </head>
+
 <body>
     <!-- 메인 화면 -->
     <div id="menuScreen" class="screen active">
         <div class="container">
             <h1>📚 국어 단어암기</h1>
-            
+
             <button class="btn btn-primary btn-large" id="addSetBtn">
                 📷 사진으로 단어 추가
             </button>
@@ -58,6 +60,7 @@
             </div>
 
             <div id="ocrResult" style="display: none;">
+                <div id="imagePreviewContainer" class="image-preview-container"></div>
                 <h3>추출된 세트</h3>
                 <p style="color: #666; font-size: 14px;">각 세트를 확인하고 저장하세요</p>
                 <div id="setsContainer"></div>
@@ -114,7 +117,8 @@
                 <div class="completion-emoji">🎉</div>
                 <div class="completion-message" id="completionMessage"></div>
                 <button class="btn btn-primary btn-large" id="nextSetBtn">다음 세트 학습</button>
-                <button class="btn btn-secondary btn-large" id="backToMenuBtn" style="margin-top:10px;">메인으로 돌아가기</button>
+                <button class="btn btn-secondary btn-large" id="backToMenuBtn" style="margin-top:10px;">메인으로
+                    돌아가기</button>
             </div>
         </div>
 
@@ -129,6 +133,7 @@
         <div id="menuOverlay" class="menu-overlay"></div>
     </div>
 
-    <script>var s=document.createElement('script');s.src='app.js?v='+Date.now();document.body.appendChild(s);</script>
+    <script>var s = document.createElement('script'); s.src = 'app.js?v=' + Date.now(); document.body.appendChild(s);</script>
 </body>
+
 </html>

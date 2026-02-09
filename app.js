@@ -141,6 +141,10 @@ async function processOCR(file) {
             reader.readAsDataURL(processedFile);
         });
 
+        // 이미지 미리보기 표시
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        previewContainer.innerHTML = `<img src="data:image/jpeg;base64,${base64Data}" alt="원본 이미지 미리보기">`;
+
         // API 호출
         const response = await fetch('/api/ocr', {
             method: 'POST',
