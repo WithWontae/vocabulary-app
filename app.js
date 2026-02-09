@@ -141,8 +141,9 @@ async function processOCR(file) {
             reader.readAsDataURL(processedFile);
         });
 
-        // 이미지 미리보기 표시
+        // 이미지 미리보기 표시 (추출 진행 중에도 보이도록)
         const previewContainer = document.getElementById('imagePreviewContainer');
+        previewContainer.style.display = 'flex';
         previewContainer.innerHTML = `<img src="data:image/jpeg;base64,${base64Data}" alt="원본 이미지 미리보기">`;
 
         // API 호출
@@ -200,7 +201,7 @@ function groupByNumber(words) {
         return parseInt(a) - parseInt(b);
     }).map(num => ({
         number: num,
-        name: num === 'etc' ? '기타' : `${num}번`,
+        name: num === 'etc' ? '기타' : num, // 숫자가 세트명으로 기본 입력
         words: groups[num]
     }));
 }
