@@ -4,7 +4,9 @@ const AppState = {
     currentSet: null,
     currentSetIndex: null,
     currentIndex: 0,
-    isInitialLoaded: false // 데이터 로드 여부를 확인하는 플래그
+    currentIndex: 0,
+    isInitialLoaded: false, // 데이터 로드 여부를 확인하는 플래그
+    loopMode: false // 1회차 완료 후 반복 모드 진입 여부
 };
 
 // 초기화 로직
@@ -390,9 +392,21 @@ function saveSet(setIdx) {
 
 // 학습 시작
 function startStudy(setIndex) {
-    AppState.currentSet = AppState.wordSets[setIndex];
+    const set = AppState.wordSets[setIndex];
+
+    // 완료된 세트인지 확인 & 리셋 로직
+    if (set.words.length > 0 && set.words.every(w => w.known)) {
+        if (confirm("처음부터 다시 학습하시겠습니까?")) {
+            set.words.forEach(w => w.known = false);
+            // 저장 (데이터 영구 반영)
+            saveData();
+        }
+    }
+
+    AppState.currentSet = set;
     AppState.currentSetIndex = setIndex;
     AppState.currentIndex = 0;
+    AppState.loopMode = false; // 학습 시작 시 항상 1회차 모드(순서대로)
 
     document.getElementById('completionOverlay').style.display = 'none';
     showScreen('studyScreen');
@@ -563,14 +577,13 @@ function updateCard() {
         const threshold = card.offsetWidth * 0.25;
         const words = AppState.currentSet.words;
 
-        if (deltaX < -threshold && AppState.currentIndex < words.length - 1) {
+        if (deltaX < -threshold) {
             // 왼쪽 스와이프 → 다음
             card.style.transition = 'transform 0.2s, opacity 0.2s';
             card.style.transform = 'translateX(-100%)';
             card.style.opacity = '0';
             setTimeout(() => {
-                AppState.currentIndex++;
-                updateCard();
+                goToNextCard(); // 통합된 다음 카드 로직 호출
                 card.style.transition = 'none';
                 card.style.transform = 'translateX(100%)';
                 requestAnimationFrame(() => {
@@ -656,11 +669,62 @@ document.getElementById('prevBtn').addEventListener('click', () => {
 });
 
 document.getElementById('nextBtn').addEventListener('click', () => {
-    if (AppState.currentIndex < AppState.currentSet.words.length - 1) {
-        AppState.currentIndex++;
-        updateCard();
-    }
+    goToNextCard();
 });
+
+// 다음 카드 로직 (Seamless Loop & Skip Known)
+function goToNextCard() {
+    const set = AppState.currentSet;
+    const total = set.words.length;
+
+    // 만약 모든 단어를 다 알게 된 경우 -> 완료 화면 (이동 불가)
+    if (set.words.every(w => w.known)) {
+        checkCompletion();
+        return;
+    }
+
+    // 1회차 (loopMode == false)
+    // 순서대로 끝까지 감. 건너뛰지 않음.
+    if (!AppState.loopMode) {
+        if (AppState.currentIndex < total - 1) {
+            AppState.currentIndex++;
+            updateCard();
+        } else {
+            // 마지막 카드 도달 -> 이제부터 loopMode 진입
+            AppState.loopMode = true;
+            goToNextUnknown(); // 첫 번째 루프 단어 찾기
+        }
+    } else {
+        // 반복 모드 (loopMode == true)
+        // 아는 단어는 건너뛰고 모르는 단어만 찾음
+        goToNextUnknown();
+    }
+}
+
+// 다음 모르는 단어 찾기 (현재 위치 다음부터 검색, 한 바퀴 돎)
+function goToNextUnknown() {
+    const set = AppState.currentSet;
+    const total = set.words.length;
+    let idx = (AppState.currentIndex + 1) % total;
+    let found = false;
+
+    // 최대 한 바퀴 검색
+    for (let i = 0; i < total; i++) {
+        if (!set.words[idx].known) {
+            AppState.currentIndex = idx;
+            found = true;
+            break;
+        }
+        idx = (idx + 1) % total;
+    }
+
+    if (found) {
+        updateCard();
+    } else {
+        // 모르는 단어가 하나도 없음 (방금 마지막 하나를 알게 됨)
+        checkCompletion();
+    }
+}
 
 // 뒤로가기
 document.getElementById('studyBackBtn').addEventListener('click', () => {
