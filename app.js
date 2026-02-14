@@ -4,7 +4,8 @@ const AppState = {
     currentSet: null,
     currentSetIndex: null,
     currentIndex: 0,
-    isInitialLoaded: false // 데이터 로드 여부를 확인하는 플래그
+    isInitialLoaded: false, // 데이터 로드 여부를 확인하는 플래그
+    isReviewMode: false // 복습 모드 여부
 };
 
 // 초기화 로직
@@ -392,12 +393,27 @@ function saveSet(setIdx) {
 function startStudy(setIndex) {
     AppState.currentSet = AppState.wordSets[setIndex];
     AppState.currentSetIndex = setIndex;
+
+    // 만약 이미 완료된 세트라면 초기화
+    if (AppState.currentSet.words.every(w => w.known)) {
+        if (confirm('이미 완료한 세트입니다. 처음부터 다시 학습하시겠습니까?')) {
+            AppState.currentSet.words.forEach(w => w.known = false);
+            saveData();
+        }
+    }
+
+    AppState.isReviewMode = false;
     AppState.currentIndex = 0;
+
+    // 첫 단어가 이미 아는 단어라면(부분 학습 중인 경우), 학습할 첫 단어를 찾음
+    // 단순 복습 로직과 다르게, '처음' 들어왔을 때는 0번부터 보여줄지, 아니면 안 외운것부터 보여줄지 결정 필요.
+    // 요구사항: "1번부터 마지막 카드까지 순차적으로 학습합니다" -> 0번 고정.
 
     document.getElementById('completionOverlay').style.display = 'none';
     showScreen('studyScreen');
     updateCard();
     renderMenu();
+
 }
 
 // 카드 업데이트
@@ -426,6 +442,35 @@ function updateCard() {
         statusBtn.className = 'btn-status learning';
         statusBtn.textContent = '학습중';
     }
+
+    // 복습 모드 표시 (선택 사항)
+    const reviewIndicator = document.getElementById('reviewModeIndicator') || createReviewIndicator();
+    if (AppState.isReviewMode) {
+        reviewIndicator.style.display = 'block';
+        reviewIndicator.textContent = '🔄 오답 복습 중';
+    } else {
+        reviewIndicator.style.display = 'none';
+    }
+}
+
+function createReviewIndicator() {
+    const div = document.createElement('div');
+    div.id = 'reviewModeIndicator';
+    div.style.position = 'absolute';
+    div.style.top = '60px';
+    div.style.left = '50%';
+    div.style.transform = 'translateX(-50%)';
+    div.style.background = 'rgba(255, 152, 0, 0.9)';
+    div.style.color = 'white';
+    div.style.padding = '4px 12px';
+    div.style.borderRadius = '20px';
+    div.style.fontSize = '12px';
+    div.style.fontWeight = 'bold';
+    div.style.zIndex = '10';
+    div.style.display = 'none';
+    document.querySelector('.study-container').appendChild(div);
+    return div;
+
 }
 
 // 드래그로 뜻 커버 열기/닫기
@@ -499,7 +544,13 @@ function updateCard() {
 
         saveData();
         document.getElementById('knownCount').textContent = AppState.currentSet.words.filter(w => w.known).length;
-        checkCompletion();
+
+        // 커버로 '아는 단어' 처리했을 때, 바로 완료 체크는 하지 않음 (마지막 카드에서 체크함)
+        // 단, 모든 단어가 다 완료되었는지는 체크해서 완료 화면 띄울 수 있음.
+        if (AppState.currentSet.words.every(w => w.known)) {
+            checkCompletion();
+        }
+
     }
 
     // 커버 위에서 드래그 (열기)
@@ -563,59 +614,58 @@ function updateCard() {
         const threshold = card.offsetWidth * 0.25;
         const words = AppState.currentSet.words;
 
-        if (deltaX < -threshold && AppState.currentIndex < words.length - 1) {
-            // 왼쪽 스와이프 → 다음
-            card.style.transition = 'transform 0.2s, opacity 0.2s';
-            card.style.transform = 'translateX(-100%)';
-            card.style.opacity = '0';
-            setTimeout(() => {
-                AppState.currentIndex++;
-                updateCard();
-                card.style.transition = 'none';
-                card.style.transform = 'translateX(100%)';
-                requestAnimationFrame(() => {
-                    card.style.transition = 'transform 0.2s, opacity 0.2s';
-                    card.style.transform = 'translateX(0)';
-                    card.style.opacity = '1';
-                });
-            }, 200);
-        } else if (deltaX > threshold && AppState.currentIndex > 0) {
-            // 오른쪽 스와이프 → 이전
-            card.style.transition = 'transform 0.2s, opacity 0.2s';
+        // 왼쪽 스와이프 → 다음
+        card.style.transition = 'transform 0.2s, opacity 0.2s';
+        card.style.transform = 'translateX(-100%)';
+        card.style.opacity = '0';
+        setTimeout(() => {
+            goToNextCard(); // 통합된 다음 카드 로직
+            card.style.transition = 'none';
             card.style.transform = 'translateX(100%)';
-            card.style.opacity = '0';
-            setTimeout(() => {
-                AppState.currentIndex--;
-                updateCard();
-                card.style.transition = 'none';
-                card.style.transform = 'translateX(-100%)';
-                requestAnimationFrame(() => {
-                    card.style.transition = 'transform 0.2s, opacity 0.2s';
-                    card.style.transform = 'translateX(0)';
-                    card.style.opacity = '1';
-                });
-            }, 200);
-        } else {
-            // 스냅백
-            card.style.transition = 'transform 0.2s, opacity 0.2s';
-            card.style.transform = 'translateX(0)';
-            card.style.opacity = '1';
-        }
+            requestAnimationFrame(() => {
+                card.style.transition = 'transform 0.2s, opacity 0.2s';
+                card.style.transform = 'translateX(0)';
+                card.style.opacity = '1';
+            });
+        }, 200);
+        // 오른쪽 스와이프 → 이전
+        card.style.transition = 'transform 0.2s, opacity 0.2s';
+        card.style.transform = 'translateX(100%)';
+        card.style.opacity = '0';
+        setTimeout(() => {
+            goToPrevCard(); // 통합된 이전 카드 로직
+            card.style.transition = 'none';
+            card.style.transform = 'translateX(-100%)';
+            requestAnimationFrame(() => {
+                card.style.transition = 'transform 0.2s, opacity 0.2s';
+                card.style.transform = 'translateX(0)';
+                card.style.opacity = '1';
+            });
+        }, 200);
+    } else {
+        // 스냅백
+        card.style.transition = 'transform 0.2s, opacity 0.2s';
+        card.style.transform = 'translateX(0)';
+        card.style.opacity = '1';
+    }
 
         isSwiping = false;
-        directionLocked = false;
-    });
-})();
+    directionLocked = false;
+});
+}) ();
 
 // 세트 학습 완료 체크
 function checkCompletion() {
     const set = AppState.currentSet;
     if (set.words.every(w => w.known)) {
-        const overlay = document.getElementById('completionOverlay');
-        document.getElementById('completionMessage').textContent =
-            `강민 ~~ ${set.name} 세트 단어 학습 완료! 축하!`;
-        overlay.style.display = 'flex';
+        setTimeout(() => {
+            const overlay = document.getElementById('completionOverlay');
+            document.getElementById('completionMessage').textContent =
+                `강민 ~~ ${set.name} 세트 단어 학습 완료! 축하!`;
+            overlay.style.display = 'flex';
+        }, 300); // UI 업데이트 후 살짝 딜레이
     }
+
 }
 
 // 완료 화면 버튼
@@ -648,19 +698,92 @@ document.getElementById('backToMenuBtn').addEventListener('click', () => {
 });
 
 // 이전/다음
-document.getElementById('prevBtn').addEventListener('click', () => {
+// 이전/다음 버튼 이벤트
+document.getElementById('prevBtn').addEventListener('click', goToPrevCard);
+document.getElementById('nextBtn').addEventListener('click', goToNextCard);
+
+function goToPrevCard() {
     if (AppState.currentIndex > 0) {
+        // 복습 모드에서도 단순히 이전 카드로 갈 수 있게 허용할지, 아니면 '모르는 단어'만 탐색할지?
+        // UX상으로는 직전 카드로 가는게 자연스러움. (실수로 넘겼을 때)
         AppState.currentIndex--;
         updateCard();
     }
-});
+}
 
-document.getElementById('nextBtn').addEventListener('click', () => {
-    if (AppState.currentIndex < AppState.currentSet.words.length - 1) {
-        AppState.currentIndex++;
-        updateCard();
+function goToNextCard() {
+    const set = AppState.currentSet;
+    const total = set.words.length;
+
+    // 1. 모든 단어를 다 외웠는지 확인
+    if (set.words.every(w => w.known)) {
+        checkCompletion();
+        return;
     }
-});
+
+    // 2. 복습 모드가 아닐 때 (순차 학습 모드)
+    if (!AppState.isReviewMode) {
+        if (AppState.currentIndex < total - 1) {
+            // 아직 끝까지 안 갔으면 그냥 다음 글자
+            AppState.currentIndex++;
+            updateCard();
+        } else {
+            // 마지막 카드 도달!
+            // 모르는 단어가 있는지 확인
+            const hasUnknown = set.words.some(w => !w.known);
+            if (hasUnknown) {
+                // 복습 모드 진입
+                AppState.isReviewMode = true;
+                alert('끝까지 학습했습니다! 이제 모르는 단어만 복습합니다. 🔄');
+
+                // 첫 번째 모르는 단어로 이동
+                const firstUnknownIndex = set.words.findIndex(w => !w.known);
+                if (firstUnknownIndex !== -1) {
+                    AppState.currentIndex = firstUnknownIndex;
+                    updateCard();
+                }
+            } else {
+                // 다 알면 완료
+                checkCompletion();
+            }
+        }
+        return;
+    }
+
+    // 3. 복습 모드일 때 (모르는 단어만 순환)
+    if (AppState.isReviewMode) {
+        let nextIndex = -1;
+
+        // 현재 위치 다음부터 끝까지 검색
+        for (let i = AppState.currentIndex + 1; i < total; i++) {
+            if (!set.words[i].known) {
+                nextIndex = i;
+                break;
+            }
+        }
+
+        // 없으면 처음부터 현재 위치 전까지 검색 (순환)
+        if (nextIndex === -1) {
+            for (let i = 0; i < AppState.currentIndex; i++) {
+                if (!set.words[i].known) {
+                    nextIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (nextIndex !== -1) {
+            AppState.currentIndex = nextIndex;
+            updateCard();
+
+            // 토스트 메시지로 복습 중임을 살짝 알려주면 좋음 (생략 가능)
+        } else {
+            // 여기로 온다는 것은 모든 단어가 known이라는 뜻
+            checkCompletion();
+        }
+    }
+}
+
 
 // 뒤로가기
 document.getElementById('studyBackBtn').addEventListener('click', () => {
