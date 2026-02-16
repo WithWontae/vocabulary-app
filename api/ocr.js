@@ -24,7 +24,7 @@ const OCR_PROMPT = `이 이미지는 고등학교 국어 단어 학습 자료이
 
 이미지에서 다음 정보를 식별하라:
 - 세트 번호: 표의 첫 열에 있는 숫자 (다른 색상이거나 굵은 글씨일 수 있음). 번호가 나타난 행부터 다음 번호 전까지 같은 세트.
-- 단어: 표의 두 번째 열 (한자, 한글, 혼합 등 다양한 형태)
+- 단어: 표의 두 번째 열. **'단어 ↔ 단어' 또는 '단어 <-> 단어' 형태는 절대 분리하지 말고 전체를 하나의 단어로 취급하라.** (예: "갈등 ↔ 승격")
 - 뜻/부가정보: 표의 세 번째 열 또는 단어 주변에 위치한 모든 내용 (뜻, 유의어, 반의어, 예문 등). **특히 '예', '(예)', '예시' 문구는 위치에 상관없이 반드시 추출하여 해당 단어의 의미 끝에 붙여라.**
 
 번호 칸이 비어 있으면 바로 위 행의 번호를 그대로 사용하라.
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { image } = req.body;
+    const { image, additionalPrompt } = req.body;
 
     if (!image || !image.data) {
       return res.status(400).json({ error: 'No image provided' });
@@ -74,6 +74,12 @@ export default async function handler(req, res) {
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
+
+    // 프롬프트 구성 (기본 + 추가)
+    let finalPrompt = OCR_PROMPT;
+    if (additionalPrompt && additionalPrompt.trim()) {
+      finalPrompt += `\n\n# 사용자 추가 요청사항\n${additionalPrompt}`;
+    }
 
     // Claude API 호출
     const message = await anthropic.messages.create({
@@ -93,7 +99,7 @@ export default async function handler(req, res) {
             },
             {
               type: 'text',
-              text: OCR_PROMPT,
+              text: finalPrompt,
             },
           ],
         },

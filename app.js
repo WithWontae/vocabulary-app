@@ -111,25 +111,65 @@ document.getElementById('cameraBtn').addEventListener('click', () => {
     document.getElementById('cameraInput').click();
 });
 
+// OCR 파일 선택 시 바로 시작하지 않고, 미리보기 & 추가 프롬프트 입력창 표시
+let currentOcrFile = null;
+
 document.getElementById('galleryInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    await processOCR(file);
+    handleFileSelect(file);
 });
 
 document.getElementById('cameraInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    await processOCR(file);
+    handleFileSelect(file);
+});
+
+async function handleFileSelect(file) {
+    currentOcrFile = file;
+
+    // UI 초기화
+    document.getElementById('ocrResult').style.display = 'none';
+    document.getElementById('ocrProgress').style.display = 'none';
+    document.getElementById('customPromptInput').value = '';
+
+    // 이미지 미리보기
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    previewContainer.style.display = 'flex';
+    previewContainer.innerHTML = ''; // 기존 내용 삭제
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        previewContainer.innerHTML = `<img src="${e.target.result}" alt="미리보기" style="max-width: 100%; border-radius: 8px;">`;
+    };
+    reader.readAsDataURL(file);
+
+    // 프롬프트 입력창 표시
+    document.getElementById('customPromptArea').style.display = 'block';
+}
+
+document.getElementById('startOcrBtn').addEventListener('click', async () => {
+    if (!currentOcrFile) {
+        alert('이미지를 먼저 선택해주세요.');
+        return;
+    }
+    const customPrompt = document.getElementById('customPromptInput').value;
+    await processOCR(currentOcrFile, customPrompt);
 });
 
 // OCR 처리
-async function processOCR(file) {
-    resetOCR(); // 시작 전 초기화
+async function processOCR(file, additionalPrompt = '') {
+    resetOCR(); // 시작 전 초기화 (이 함수는 기존 UI숨김 등을 포함하므로 주의 필요)
+
+    // resetOCR이 숨겨버린 것들을 다시 조정
+    // 진행 중 상태 표시
     const progressDiv = document.getElementById('ocrProgress');
     const resultDiv = document.getElementById('ocrResult');
+    const customPromptArea = document.getElementById('customPromptArea');
     const progressText = document.getElementById('progressText');
 
+    customPromptArea.style.display = 'none'; // 입력창 숨김
     progressDiv.style.display = 'block';
     resultDiv.style.display = 'none';
     progressText.textContent = '단어를 추출하는 중...';
@@ -184,7 +224,8 @@ async function processOCR(file) {
                 image: {
                     data: base64Data,
                     media_type: processedFile.type || 'image/jpeg'
-                }
+                },
+                additionalPrompt: additionalPrompt
             })
         });
 

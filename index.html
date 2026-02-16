@@ -57,6 +57,13 @@
 
             <div id="imagePreviewContainer" class="image-preview-container" style="display: none;"></div>
 
+            <div id="customPromptArea" style="display: none; margin-top: 20px;">
+                <textarea id="customPromptInput" class="form-control" rows="3" placeholder="추가 요청사항을 입력하세요 (예: '영어 단어만 추출해줘', '반의어 관계만 찾아줘' 등)"></textarea>
+                <button class="btn btn-primary" id="startOcrBtn" style="margin-top: 10px; width: 100%;">
+                    ✨ 텍스트 추출 시작
+                </button>
+            </div>
+
             <div id="ocrProgress" style="display: none; text-align: center; padding: 40px;">
                 <div class="spinner"></div>
                 <p id="progressText">단어를 추출하는 중...</p>
